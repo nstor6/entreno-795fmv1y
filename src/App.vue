@@ -4,6 +4,7 @@ import { RouterLink, RouterView } from 'vue-router'
 const tabs = [
   { to: '/', label: 'Hoy', icon: 'M4 11l8-7 8 7v9h-5v-6H9v6H4z' },
   { to: '/historial', label: 'Historial', icon: 'M12 7v5l3 2M21 12a9 9 0 1 1-9-9 9 9 0 0 1 9 9z' },
+  { to: '/medidas', label: 'Medidas', icon: 'M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zM8 9a4 4 0 0 1 8 0M12 9l1.5-2' },
   { to: '/datos', label: 'Datos', icon: 'M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zm0 0v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3' },
 ]
 </script>

@@ -7,6 +7,8 @@ import { loadToday } from '../data/queries'
 import { startWorkout } from '../data/session'
 import { formatShortDate, localDate } from '../domain/dates'
 import { REST_WARNING } from '../domain/nextSession'
+import { kneeMessages } from '../domain/knee'
+import DiaryCard from '../components/DiaryCard.vue'
 
 const router = useRouter()
 const today = localDate()
@@ -47,6 +49,10 @@ async function start() {
       <h1 v-if="model.routine">{{ model.routine.shortName }}<template v-if="model.week && model.week > 0"> · semana {{ model.week }}</template></h1>
       <h1 v-else>Hoy</h1>
     </header>
+
+    <p v-for="(m, i) in kneeMessages(model.knee)" :key="i" class="notice" :class="`notice-${m.level}`" role="alert">
+      {{ m.text }}
+    </p>
 
     <template v-if="!model.routine">
       <div class="card stack">
@@ -90,12 +96,14 @@ async function start() {
         <button type="button" class="btn btn-primary" :disabled="!chosenDay || starting" @click="start">Empezar sesión</button>
         <p v-if="error" class="notice notice-alarm" role="alert">{{ error }}</p>
       </div>
-
-      <details v-if="model.routine.notes" class="card">
-        <summary class="summary">Notas de la rutina</summary>
-        <p class="muted" style="margin-top: 8px">{{ model.routine.notes }}</p>
-      </details>
     </template>
+
+    <DiaryCard :date="today" :log="model.diary" :last-sleep-hours="model.lastSleepHours" />
+
+    <details v-if="model.routine?.notes" class="card">
+      <summary class="summary">Notas de la rutina</summary>
+      <p class="muted" style="margin-top: 8px">{{ model.routine.notes }}</p>
+    </details>
   </div>
 </template>
 

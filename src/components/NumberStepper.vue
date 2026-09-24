@@ -9,11 +9,19 @@ const props = defineProps<{
   /** Shown when value is null, e.g. «sin carga». */
   placeholder?: string
   integer?: boolean
+  /** With no value, the +/− buttons open the keyboard instead of stepping from 0. */
+  typeWhenEmpty?: boolean
 }>()
 // `step` sends a delta so the owner applies it to its own latest value.
 const emit = defineEmits<{ change: [value: number | null]; step: [delta: number] }>()
 
 const text = ref('')
+const input = ref<HTMLInputElement | null>(null)
+
+function onStep(delta: number) {
+  if (props.typeWhenEmpty && props.value === null) input.value?.focus()
+  else emit('step', delta)
+}
 watch(
   () => props.value,
   (v) => (text.value = v === null ? '' : formatNumber(v)),
@@ -37,8 +45,9 @@ function commit() {
 <template>
   <div class="stepper">
     <span class="label">{{ label }}</span>
-    <button type="button" class="step" :aria-label="`Menos ${label}`" @click="emit('step', -step)">−</button>
+    <button type="button" class="step" :aria-label="`Menos ${label}`" @click="onStep(-step)">−</button>
     <input
+      ref="input"
       v-model="text"
       class="value num"
       :inputmode="integer ? 'numeric' : 'decimal'"
@@ -49,7 +58,7 @@ function commit() {
       @keydown.enter="($event.target as HTMLInputElement).blur()"
       @focus="($event.target as HTMLInputElement).select()"
     />
-    <button type="button" class="step" :aria-label="`Más ${label}`" @click="emit('step', step)">+</button>
+    <button type="button" class="step" :aria-label="`Más ${label}`" @click="onStep(step)">+</button>
   </div>
 </template>
 

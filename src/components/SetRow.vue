@@ -92,9 +92,9 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
       @step="(d) => setValue(stepValue(value(), d))"
     />
 
-    <div class="row">
+    <div class="field-row">
       <span class="label">RIR</span>
-      <div class="rir" role="group" aria-label="RIR">
+      <div class="grid-6" role="group" aria-label="RIR">
         <button
           v-for="r in RIRS"
           :key="r"
@@ -109,9 +109,9 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
     </div>
 
     <button v-if="!kneeOpen" type="button" class="btn btn-quiet knee-toggle" @click="kneeOpen = true">Anotar rodilla</button>
-    <div v-else class="row">
+    <div v-else class="field-row">
       <span class="label">Rodilla</span>
-      <div class="knee" role="group" aria-label="Rodilla de 0 a 10">
+      <div class="grid-6" role="group" aria-label="Rodilla de 0 a 10">
         <button
           v-for="k in KNEE"
           :key="k"
@@ -155,38 +155,6 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
 .danger {
   color: var(--alarm-ink);
   background: transparent;
-}
-.row {
-  display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  gap: 6px;
-  align-items: center;
-}
-.label {
-  color: var(--ink-2);
-  font-size: 15px;
-  font-weight: 700;
-}
-.rir {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 4px;
-}
-.knee {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 4px;
-}
-.num-chip {
-  padding: 0;
-  min-width: 0;
-  font-family: var(--font-num);
-  font-size: 22px;
-}
-.num-chip.hurt[aria-pressed='true'] {
-  background: var(--warn);
-  border-color: var(--warn);
-  color: var(--bg);
 }
 .knee-toggle {
   align-self: flex-start;

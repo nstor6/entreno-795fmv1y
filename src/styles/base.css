@@ -211,6 +211,44 @@ button {
   border-color: var(--action);
   color: var(--on-action);
 }
+.chips-fill {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 6px;
+}
+.chips-fill > .chip {
+  padding: 0 4px;
+}
+.grid-6 {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+}
+.num-chip {
+  padding: 0;
+  min-width: 0;
+  font-family: var(--font-num);
+  font-size: 22px;
+}
+.num-chip.hurt[aria-pressed='true'] {
+  background: var(--warn);
+  border-color: var(--warn);
+  color: var(--bg);
+}
+
+/* Label + control rows (sets, diary) */
+.field-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 6px;
+  align-items: center;
+}
+.field-row > .label {
+  color: var(--ink-2);
+  font-size: 15px;
+  font-weight: 700;
+}
 
 .field-label {
   font-size: 14px;

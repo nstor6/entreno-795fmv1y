@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import rutina from '../../data/rutina-fase1.json'
 import { backupFileName, exportBackup, restoreBackup, validateBackup } from './backup'
 import { EntrenoDB, TABLE_NAMES } from './db'
+import { addMeasurement, deleteMeasurement, saveDailyLog, updateMeasurement } from './diary'
 import { importRoutine } from './importRoutine'
 import { addSet, deleteSet, finishWorkout, startWorkout } from './session'
 
@@ -127,6 +128,28 @@ describe('session writes', () => {
 
     await finishWorkout(db, id, '2026-09-25T18:00:00.000Z')
     expect((await db.workouts.get(id))?.finishedAt).toBe('2026-09-25T18:00:00.000Z')
+  })
+})
+
+describe('daily log and measurements', () => {
+  it('keeps one log per date, even with concurrent first writes', async () => {
+    await Promise.all([
+      saveDailyLog(db, '2026-10-20', { sleepHours: 7 }, 'T1'),
+      saveDailyLog(db, '2026-10-20', { kneePain: 3 }, 'T2'),
+      saveDailyLog(db, '2026-10-21', { kneeRedFlag: true }, 'T3'),
+    ])
+    const logs = await db.dailyLogs.orderBy('date').toArray()
+    expect(logs).toHaveLength(2)
+    expect(logs[0]).toMatchObject({ date: '2026-10-20', sleepHours: 7, kneePain: 3, createdAt: 'T1', updatedAt: 'T2' })
+    expect(logs[1]).toMatchObject({ kneeRedFlag: true, sleepHours: null, shift: null })
+  })
+
+  it('adds, edits and logically deletes measurements', async () => {
+    const id = await addMeasurement(db, { date: '2026-10-04', weightKg: 94.2, waistCm: 101, note: '' }, 'T1')
+    await updateMeasurement(db, id, { date: '2026-10-04', weightKg: 94, waistCm: 100.5, note: 'en ayunas' }, 'T2')
+    expect(await db.measurements.get(id)).toMatchObject({ weightKg: 94, waistCm: 100.5, createdAt: 'T1', updatedAt: 'T2' })
+    await deleteMeasurement(db, id, 'T3')
+    expect((await db.measurements.get(id))?.deletedAt).toBe('T3')
   })
 })
 

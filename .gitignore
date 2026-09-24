@@ -5,7 +5,7 @@ dev-dist
 .DS_Store
 .claude/
 
-# Personal files kept only on this computer
-CLAUDE.md
-docs/
-data/
+# Personal files kept only on this computer (root only: src/data/ is code)
+/CLAUDE.md
+/docs/
+/data/

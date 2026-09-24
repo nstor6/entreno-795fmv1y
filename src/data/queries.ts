@@ -1,7 +1,19 @@
 // Read models for the screens, meant to run inside useLive().
 import { recordsOf, type ExerciseRecord } from '../domain/history'
+import { kneePainDates, kneeStatus, type KneeStatus } from '../domain/knee'
 import { nextDay, trainedYesterday } from '../domain/nextSession'
-import { isAlive, type Exercise, type Routine, type RoutineDay, type RoutineExercise, type SetLog, type Workout, type WorkoutExercise } from '../domain/types'
+import {
+  isAlive,
+  type DailyLog,
+  type Exercise,
+  type Measurement,
+  type Routine,
+  type RoutineDay,
+  type RoutineExercise,
+  type SetLog,
+  type Workout,
+  type WorkoutExercise,
+} from '../domain/types'
 import { weekLabel, weekNumber } from '../domain/weeks'
 import type { EntrenoDB } from './db'
 
@@ -13,15 +25,40 @@ export interface TodayModel {
   nextDay: RoutineDay | null
   unfinished: Workout | null
   trainedYesterday: boolean
+  diary: DailyLog | null
+  /** Most recent sleep hours logged before today, to start the stepper from. */
+  lastSleepHours: number | null
+  knee: KneeStatus
 }
 
 export async function loadToday(db: EntrenoDB, today: string): Promise<TodayModel> {
-  const routine = (await db.routines.toArray()).find((r) => r.active && isAlive(r)) ?? null
-  const workouts = (await db.workouts.toArray()).filter(isAlive)
+  const [routines, allWorkouts, dailyLogs, workoutExercises, sets] = await Promise.all([
+    db.routines.toArray(),
+    db.workouts.toArray(),
+    db.dailyLogs.toArray(),
+    db.workoutExercises.toArray(),
+    db.sets.toArray(),
+  ])
+  const routine = routines.find((r) => r.active && isAlive(r)) ?? null
+  const workouts = allWorkouts.filter(isAlive)
   const unfinished =
     workouts.filter((w) => w.finishedAt === null).sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0] ?? null
+
+  const logs = dailyLogs.filter(isAlive)
+  const diary = logs.find((d) => d.date === today) ?? null
+  const lastSleepHours =
+    logs
+      .filter((d) => d.date < today && d.sleepHours !== null)
+      .sort((a, b) => b.date.localeCompare(a.date))[0]?.sleepHours ?? null
+  const knee = kneeStatus(
+    kneePainDates(logs, sets, workoutExercises, workouts),
+    logs.filter((d) => d.kneeRedFlag).map((d) => d.date),
+    today,
+  )
+  const common = { unfinished, diary, lastSleepHours, knee }
+
   if (!routine) {
-    return { routine, days: [], week: null, weekLabel: null, nextDay: null, unfinished, trainedYesterday: false }
+    return { routine, days: [], week: null, weekLabel: null, nextDay: null, trainedYesterday: false, ...common }
   }
   const days = (await db.routineDays.where('routineId').equals(routine.id).toArray())
     .filter(isAlive)
@@ -33,9 +70,14 @@ export async function loadToday(db: EntrenoDB, today: string): Promise<TodayMode
     week,
     weekLabel: weekLabel(routine.weekOverrides, week),
     nextDay: nextDay(routine.id, days, workouts),
-    unfinished,
     trainedYesterday: trainedYesterday(workouts, today),
+    ...common,
   }
+}
+
+export async function loadMeasurements(db: EntrenoDB): Promise<Measurement[]> {
+  const rows = (await db.measurements.toArray()).filter(isAlive)
+  return rows.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
 }
 
 export interface SessionExercise {
