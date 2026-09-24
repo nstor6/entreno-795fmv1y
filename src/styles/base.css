@@ -1,0 +1,239 @@
+/* Palette «Tiza y hierro» (approved). Light by default, dark from the system. */
+:root {
+  --bg: #f3f0e8;
+  --surface: #ffffff;
+  --surface-2: #ece8dd;
+  --line: #ddd8cc;
+  --ink: #1b1e23;
+  --ink-2: #5e6068;
+  --action: #2743c9;
+  --on-action: #ffffff;
+  --action-soft: #e4e9fb;
+  --action-ink: #1f3aa8;
+  --warn: #b86e0a;
+  --warn-soft: #fbebd2;
+  --warn-ink: #7a4a06;
+  --alarm: #b8322a;
+  --alarm-soft: #f9e0dd;
+  --alarm-ink: #8a2019;
+
+  --font-text: 'Atkinson Hyperlegible', system-ui, sans-serif;
+  --font-num: 'Barlow Condensed', 'Atkinson Hyperlegible', sans-serif;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --tap: 48px;
+  --nav-h: 64px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181c;
+    --surface: #202329;
+    --surface-2: #2b2f36;
+    --line: #30343b;
+    --ink: #f0ece3;
+    --ink-2: #a3a5ac;
+    --action: #7f98ff;
+    --on-action: #10152b;
+    --action-soft: #1e2748;
+    --action-ink: #afc0ff;
+    --warn: #f2b55a;
+    --warn-soft: #3a2a10;
+    --warn-ink: #f2b55a;
+    --alarm: #ff7b6e;
+    --alarm-soft: #3d1a17;
+    --alarm-ink: #ff9e94;
+    color-scheme: dark;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.2;
+}
+h1 {
+  font-size: 26px;
+}
+h2 {
+  font-size: 20px;
+}
+h3 {
+  font-size: 17px;
+}
+p {
+  margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+:focus-visible {
+  outline: 3px solid var(--action);
+  outline-offset: 2px;
+}
+
+.num {
+  font-family: var(--font-num);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.muted {
+  color: var(--ink-2);
+}
+
+.small {
+  font-size: 15px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+/* Buttons */
+.btn {
+  min-height: var(--tap);
+  padding: 0 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--ink);
+}
+.btn:active {
+  transform: scale(0.98);
+}
+.btn-primary {
+  background: var(--action);
+  border-color: var(--action);
+  color: var(--on-action);
+  min-height: 56px;
+  font-size: 18px;
+}
+.btn-quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--action-ink);
+}
+.btn-danger {
+  color: var(--alarm-ink);
+  border-color: var(--alarm);
+  background: transparent;
+}
+.btn-block {
+  width: 100%;
+}
+
+/* Notices */
+.notice {
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 15px;
+}
+.notice-info {
+  background: var(--action-soft);
+  color: var(--action-ink);
+}
+.notice-warn {
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+}
+.notice-alarm {
+  background: var(--alarm-soft);
+  color: var(--alarm-ink);
+}
+
+/* Chips (segmented choices) */
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.chip {
+  min-height: var(--tap);
+  min-width: var(--tap);
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  font-weight: 700;
+}
+.chip[aria-pressed='true'] {
+  background: var(--action);
+  border-color: var(--action);
+  color: var(--on-action);
+}
+
+.field-label {
+  font-size: 14px;
+  color: var(--ink-2);
+  display: block;
+  margin-bottom: 4px;
+}
+
+textarea,
+input[type='text'] {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 10px 12px;
+  min-height: var(--tap);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
