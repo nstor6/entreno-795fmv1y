@@ -146,9 +146,22 @@ onBeforeUnmount(() => {
     <template v-for="g in groups" :key="g.key">
       <section v-if="g.superset" class="superset" aria-label="Superserie">
         <p class="superset-label">Superserie</p>
-        <ExerciseCard v-for="item in g.items" :key="item.workoutExercise.id" :item="item" :exercises="model.exercises" />
+        <ExerciseCard
+          v-for="item in g.items"
+          :key="item.workoutExercise.id"
+          :item="item"
+          :exercises="model.exercises"
+          :sleep-quality="model.sleepQuality"
+          :live="!finished"
+        />
       </section>
-      <ExerciseCard v-else :item="g.items[0]!" :exercises="model.exercises" />
+      <ExerciseCard
+        v-else
+        :item="g.items[0]!"
+        :exercises="model.exercises"
+        :sleep-quality="model.sleepQuality"
+        :live="!finished"
+      />
     </template>
 
     <div class="card">

@@ -7,11 +7,18 @@ import { readLocal, writeLocal } from '../data/storage'
 import { formatShortDate } from '../domain/dates'
 import { formatExerciseLine, formatTarget } from '../domain/format'
 import { lastAny, lastWorkingSetAs, workingSetsByExercise } from '../domain/history'
+import { suggest, suggestedLoad, suggestionText } from '../domain/progression'
 import { draftSet } from '../domain/setDraft'
-import type { AltReason, Exercise } from '../domain/types'
+import type { AltReason, Exercise, SleepQuality } from '../domain/types'
 import SetRow from './SetRow.vue'
 
-const props = defineProps<{ item: SessionExercise; exercises: Map<string, Exercise> }>()
+const props = defineProps<{
+  item: SessionExercise
+  exercises: Map<string, Exercise>
+  sleepQuality: SleepQuality | null
+  /** Unfinished session: show suggestions. */
+  live: boolean
+}>()
 
 const we = computed(() => props.item.workoutExercise)
 const planned = computed(() => props.item.planned)
@@ -61,12 +68,26 @@ const lastLines = computed(() => {
   })
 })
 
+// Suggestion (SPEC §9), only while the session is open.
+const suggestion = computed(() =>
+  props.live && planned.value
+    ? suggest({ exercise: planned.value, today: we.value, records: props.item.records, sleepQuality: props.sleepQuality })
+    : null,
+)
+const suggestionMessage = computed(() => {
+  if (!suggestion.value || !planned.value) return null
+  const names = new Map([...props.exercises].map(([id, e]) => [id, e.name]))
+  return suggestionText(suggestion.value, planned.value, names)
+})
+
 async function onAdd() {
   const ex = active.value
   if (!ex) return
   const lastTime = lastWorkingSetAs(props.item.records, ex.id)
   const targetMin = we.value.targetMin
-  await addSet(db, we.value.id, ex.id, (previous) => draftSet(ex, targetMin, previous, lastTime))
+  // The suggested load only applies when doing the planned exercise, not an alternative.
+  const suggested = suggestion.value && ex.id === planned.value?.id ? suggestedLoad(suggestion.value) : null
+  await addSet(db, we.value.id, ex.id, (previous) => draftSet(ex, targetMin, previous, lastTime, suggested))
 }
 
 function removeSet(id: string) {
@@ -107,6 +128,14 @@ onBeforeUnmount(saveNote)
       <p v-for="(l, i) in lastLines" :key="i">{{ l }}</p>
     </div>
     <p v-else class="last small muted">Primera vez con este ejercicio.</p>
+
+    <p
+      v-if="suggestionMessage"
+      class="notice suggestion"
+      :class="suggestion?.kind === 'knee_hold' ? 'notice-warn' : 'notice-info'"
+    >
+      {{ suggestionMessage }}
+    </p>
 
     <div v-if="alternatives.length" class="alt">
       <button type="button" class="btn btn-quiet alt-toggle" :aria-expanded="altOpen" @click="altOpen = !altOpen">
@@ -162,6 +191,10 @@ onBeforeUnmount(saveNote)
   gap: 4px;
 }
 .target {
+  font-weight: 700;
+}
+.suggestion {
+  font-size: 17px;
   font-weight: 700;
 }
 .last {

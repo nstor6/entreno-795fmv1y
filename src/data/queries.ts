@@ -11,6 +11,7 @@ import {
   type RoutineDay,
   type RoutineExercise,
   type SetLog,
+  type SleepQuality,
   type Workout,
   type WorkoutExercise,
 } from '../domain/types'
@@ -94,17 +95,20 @@ export interface SessionModel {
   day: RoutineDay | undefined
   exercises: Map<string, Exercise>
   items: SessionExercise[]
+  /** Sleep quality in the daily log of the session's date (progression rule 3). */
+  sleepQuality: SleepQuality | null
 }
 
 export async function loadSession(db: EntrenoDB, workoutId: string): Promise<SessionModel | null> {
   const workout = await db.workouts.get(workoutId)
   if (!workout || !isAlive(workout)) return null
-  const [routine, day, planRows, wes, allExercises] = await Promise.all([
+  const [routine, day, planRows, wes, allExercises, dailyLog] = await Promise.all([
     db.routines.get(workout.routineId),
     db.routineDays.get(workout.routineDayId),
     db.routineExercises.where('routineDayId').equals(workout.routineDayId).toArray(),
     db.workoutExercises.where('workoutId').equals(workoutId).toArray(),
     db.exercises.toArray(),
+    db.dailyLogs.where('date').equals(workout.date).first(),
   ])
   const own = wes.filter(isAlive).sort((a, b) => a.order - b.order)
   const planned = [...new Set(own.map((w) => w.plannedExerciseId))]
@@ -131,7 +135,8 @@ export async function loadSession(db: EntrenoDB, workoutId: string): Promise<Ses
       records: recordsOf(we.plannedExerciseId, workout, aliveWorkouts, pastWes, sets),
     }
   })
-  return { workout, routine, day, exercises, items }
+  const sleepQuality = dailyLog && isAlive(dailyLog) ? dailyLog.sleepQuality : null
+  return { workout, routine, day, exercises, items, sleepQuality }
 }
 
 export interface HistoryRow {
