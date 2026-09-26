@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, shallowRef } from 'vue'
 import { canShareFiles, downloadBackup, lastBackupDate, restoreBackup, shareBackup, validateBackup, type Backup } from '../data/backup'
 import { importRoutine } from '../data/importRoutine'
 import { db } from '../data/instance'
@@ -80,7 +80,8 @@ async function onShare() {
 }
 
 // Backup import: validate, confirm, replace
-const pending = ref<Backup | null>(null)
+// shallowRef, not ref: a deep reactive proxy can't be stored in IndexedDB (DataCloneError).
+const pending = shallowRef<Backup | null>(null)
 const backupErrors = ref<string[]>([])
 const backupMsg = ref<string | null>(null)
 async function onBackupFile(e: Event) {
@@ -105,7 +106,8 @@ async function confirmRestore() {
   try {
     await restoreBackup(db, pending.value)
     backupMsg.value = 'Copia importada. Tus datos son ahora los de la copia.'
-  } catch {
+  } catch (err) {
+    console.error('restoreBackup failed:', err instanceof Error ? `${err.name}: ${err.message}` : String(err))
     backupErrors.value = ['No se pudo importar la copia. Tus datos no han cambiado.']
   }
   pending.value = null
