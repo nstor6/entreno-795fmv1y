@@ -1,6 +1,7 @@
 // Backups (SPEC §13): every table, deleted records included.
 import { localDate } from '../domain/dates'
 import { TABLE_NAMES, type EntrenoDB, type TableName } from './db'
+import { readLocal, writeLocal } from './storage'
 
 export const BACKUP_FORMAT = 'entreno-backup'
 export const BACKUP_FORMAT_VERSION = 1
@@ -24,17 +25,63 @@ export function backupFileName(at = new Date()): string {
   return `entreno-backup-${localDate(at)}.json`
 }
 
+// Date of the last backup saved from this device, for the reminder in Today.
+const LAST_BACKUP_KEY = 'entreno:last-backup'
+
+export function lastBackupDate(): string | null {
+  return readLocal(LAST_BACKUP_KEY)
+}
+
+function markBackedUp(): void {
+  writeLocal(LAST_BACKUP_KEY, localDate())
+}
+
+async function backupFile(db: EntrenoDB): Promise<File> {
+  const backup = await exportBackup(db)
+  return new File([JSON.stringify(backup, null, 2)], backupFileName(), { type: 'application/json' })
+}
+
 /** Exports and downloads the backup file. Returns its file name. */
 export async function downloadBackup(db: EntrenoDB): Promise<string> {
-  const backup = await exportBackup(db)
-  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
+  const file = await backupFile(db)
+  const url = URL.createObjectURL(file)
   const a = document.createElement('a')
   a.href = url
-  a.download = backupFileName()
+  a.download = file.name
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
-  return a.download
+  markBackedUp()
+  return file.name
+}
+
+/** Whether this browser can hand a file to other apps (Drive, WhatsApp…) through the share menu. */
+export function canShareFiles(): boolean {
+  try {
+    const probe = new File(['{}'], 'probe.json', { type: 'application/json' })
+    return typeof navigator.canShare === 'function' && navigator.canShare({ files: [probe] })
+  } catch {
+    return false
+  }
+}
+
+export type ShareResult = 'shared' | 'downloaded' | 'cancelled'
+
+/** Sends the backup through the share menu; falls back to a download where that isn't possible. */
+export async function shareBackup(db: EntrenoDB): Promise<ShareResult> {
+  if (!canShareFiles()) {
+    await downloadBackup(db)
+    return 'downloaded'
+  }
+  const file = await backupFile(db)
+  try {
+    await navigator.share({ files: [file], title: 'Copia de Entreno' })
+    markBackedUp()
+    return 'shared'
+  } catch (e) {
+    if ((e as DOMException)?.name === 'AbortError') return 'cancelled'
+    await downloadBackup(db)
+    return 'downloaded'
+  }
 }
 
 export type BackupValidation = { ok: true; value: Backup } | { ok: false; errors: string[] }

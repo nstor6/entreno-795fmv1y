@@ -53,6 +53,40 @@ export function lastWorkingSetAs(records: ExerciseRecord[], exerciseId: string):
   return null
 }
 
+export interface ExerciseHistoryEntry {
+  workout: Workout
+  workoutExercise: WorkoutExercise
+  /** Working sets done as the exercise, by setNumber. */
+  sets: SetLog[]
+}
+
+/**
+ * Every session where `exerciseId` was actually done (at least one working set as
+ * itself), whatever was planned: it may have been an alternative. Newest first.
+ */
+export function exerciseHistory(
+  exerciseId: string,
+  workouts: Workout[],
+  workoutExercises: WorkoutExercise[],
+  sets: SetLog[],
+): ExerciseHistoryEntry[] {
+  const workoutById = new Map(workouts.filter(isAlive).map((w) => [w.id, w]))
+  const setsByWe = new Map<string, SetLog[]>()
+  for (const s of sets) {
+    if (!isAlive(s) || s.isWarmup || s.exerciseId !== exerciseId) continue
+    const list = setsByWe.get(s.workoutExerciseId)
+    if (list) list.push(s)
+    else setsByWe.set(s.workoutExerciseId, [s])
+  }
+  const out: ExerciseHistoryEntry[] = []
+  for (const we of workoutExercises) {
+    const own = setsByWe.get(we.id)
+    const workout = isAlive(we) ? workoutById.get(we.workoutId) : undefined
+    if (own && workout) out.push({ workout, workoutExercise: we, sets: own.sort((a, b) => a.setNumber - b.setNumber) })
+  }
+  return out.sort((a, b) => b.workout.date.localeCompare(a.workout.date) || b.workout.startedAt.localeCompare(a.workout.startedAt))
+}
+
 /** Non-warmup sets grouped by the exercise actually done, in first-seen order. */
 export function workingSetsByExercise(sets: SetLog[]): { exerciseId: string; sets: SetLog[] }[] {
   const groups = new Map<string, SetLog[]>()

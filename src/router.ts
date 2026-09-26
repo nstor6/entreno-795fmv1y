@@ -8,6 +8,7 @@ export const router = createRouter({
     { path: '/', name: 'today', component: TodayView },
     { path: '/sesion/:id', name: 'session', component: () => import('./views/SessionView.vue'), props: true },
     { path: '/historial', name: 'history', component: () => import('./views/HistoryView.vue') },
+    { path: '/ejercicio/:id', name: 'exercise', component: () => import('./views/ExerciseHistoryView.vue'), props: true },
     { path: '/progreso', name: 'progress', component: () => import('./views/ProgressView.vue') },
     { path: '/medidas', redirect: '/progreso' },
     { path: '/resumen', name: 'summary', component: () => import('./views/SummaryView.vue') },

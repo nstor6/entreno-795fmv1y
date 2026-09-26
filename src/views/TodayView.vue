@@ -1,31 +1,35 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { db } from '../data/instance'
 import { useLive } from '../data/live'
 import { loadToday } from '../data/queries'
-import { startWorkout } from '../data/session'
+import { finishForgottenWorkout, reopenWorkout, startWorkout } from '../data/session'
+import { showToast } from '../ui/toast'
 import { formatShortDate, localDate } from '../domain/dates'
 import { REST_WARNING } from '../domain/nextSession'
 import { kneeMessages } from '../domain/knee'
+import BackupNotice from '../components/BackupNotice.vue'
 import DiaryCard from '../components/DiaryCard.vue'
 
 const router = useRouter()
 const today = localDate()
 const { data: model } = useLive(() => loadToday(db, today))
 
-const chosenDayId = ref<string | null>(null)
-watch(
-  () => model.value?.nextDay?.id,
-  (id) => {
-    if (chosenDayId.value === null && id) chosenDayId.value = id
-  },
-  { immediate: true },
-)
+// Follows the next session until you pick another one by hand.
+const manualDayId = ref<string | null>(null)
+const chosenDayId = computed(() => manualDayId.value ?? model.value?.nextDay?.id ?? null)
 const chosenDay = computed(() => model.value?.days.find((d) => d.id === chosenDayId.value) ?? null)
 
 const starting = ref(false)
 const error = ref<string | null>(null)
+
+async function finishForgotten() {
+  const w = model.value?.unfinished
+  if (!w) return
+  await finishForgottenWorkout(db, w.id)
+  showToast(`Sesión del ${formatShortDate(w.date)} terminada.`, { label: 'Deshacer', run: () => reopenWorkout(db, w.id) })
+}
 
 async function start() {
   if (!chosenDay.value || starting.value) return
@@ -69,7 +73,15 @@ async function start() {
       <p v-if="model.weekLabel" class="notice notice-info">{{ model.weekLabel }}</p>
       <p v-if="model.trainedYesterday && !model.unfinished" class="notice notice-warn">{{ REST_WARNING }}</p>
 
-      <div v-if="model.unfinished" class="card stack">
+      <div v-if="model.unfinished && model.unfinished.date < today" class="card stack">
+        <p class="muted small">Sesión sin terminar · {{ formatShortDate(model.unfinished.date) }}</p>
+        <h2>Sesión {{ model.unfinished.dayKey }}</h2>
+        <p class="muted">Parece que se te olvidó terminarla. Termínala para empezar la de hoy.</p>
+        <button type="button" class="btn btn-primary" @click="finishForgotten">Terminarla</button>
+        <RouterLink :to="`/sesion/${model.unfinished.id}`" class="btn">Continuar sesión</RouterLink>
+      </div>
+
+      <div v-else-if="model.unfinished" class="card stack">
         <p class="muted small">Sesión sin terminar · {{ formatShortDate(model.unfinished.date) }}</p>
         <h2>Sesión {{ model.unfinished.dayKey }}</h2>
         <RouterLink :to="`/sesion/${model.unfinished.id}`" class="btn btn-primary">Continuar sesión</RouterLink>
@@ -85,7 +97,7 @@ async function start() {
             type="button"
             class="chip"
             :aria-pressed="d.id === chosenDayId"
-            @click="chosenDayId = d.id"
+            @click="manualDayId = d.id"
           >
             {{ d.key }}
           </button>
@@ -99,6 +111,8 @@ async function start() {
     </template>
 
     <DiaryCard :date="today" :log="model.diary" :last-sleep-hours="model.lastSleepHours" />
+
+    <BackupNotice :has-sessions="model.hasSessions" />
 
     <details v-if="model.routine?.notes" class="card">
       <summary class="summary">Notas de la rutina</summary>

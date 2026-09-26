@@ -29,6 +29,8 @@ export interface TodayModel {
   unfinished: Workout | null
   trainedYesterday: boolean
   diary: DailyLog | null
+  /** At least one session exists (something to lose without a backup). */
+  hasSessions: boolean
   /** Most recent sleep hours logged before today, to start the stepper from. */
   lastSleepHours: number | null
   knee: KneeStatus
@@ -58,7 +60,7 @@ export async function loadToday(db: EntrenoDB, today: string): Promise<TodayMode
     logs.filter((d) => d.kneeRedFlag).map((d) => d.date),
     today,
   )
-  const common = { unfinished, diary, lastSleepHours, knee }
+  const common = { unfinished, diary, lastSleepHours, knee, hasSessions: workouts.length > 0 }
 
   if (!routine) {
     return { routine, days: [], week: null, weekLabel: null, nextDay: null, trainedYesterday: false, ...common }

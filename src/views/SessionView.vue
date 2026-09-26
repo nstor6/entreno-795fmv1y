@@ -1,16 +1,22 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import ExerciseCard from '../components/ExerciseCard.vue'
+import RestBar from '../components/RestBar.vue'
+import SessionRecords from '../components/SessionRecords.vue'
 import { db } from '../data/instance'
 import { useLive } from '../data/live'
 import { loadSession, type SessionExercise } from '../data/queries'
-import { finishWorkout, reopenWorkout, updateWorkout } from '../data/session'
+import { deleteWorkout, finishWorkout, reopenWorkout, restoreWorkout, updateWorkout } from '../data/session'
+import { showToast } from '../ui/toast'
+import { useRouter } from 'vue-router'
 import { readLocal, writeLocal } from '../data/storage'
 import { formatShortDate } from '../domain/dates'
 import { formatWorkoutExerciseLines } from '../domain/format'
+import type { RestRequest, RunningRest } from '../domain/rest'
 import { weekLabel } from '../domain/weeks'
 
 const props = defineProps<{ id: string }>()
+const router = useRouter()
 const { data: model } = useLive(() => loadSession(db, props.id))
 
 const finished = computed(() => model.value?.workout.finishedAt != null)
@@ -64,6 +70,32 @@ async function finish() {
 async function reopen() {
   await reopenWorkout(db, props.id)
 }
+
+// Delete the whole session (e.g. started by mistake), with undo.
+const confirmingDelete = ref(false)
+async function removeSession() {
+  if (!confirmingDelete.value) {
+    confirmingDelete.value = true
+    return
+  }
+  const id = props.id
+  const deletedAt = await deleteWorkout(db, id)
+  await router.push('/')
+  showToast('Sesión borrada.', { label: 'Deshacer', run: () => restoreWorkout(db, id, deletedAt) })
+}
+
+// Rest timer: one at a time, kept on this device so a reload doesn't lose it.
+const restKey = computed(() => `entreno:rest:${props.id}`)
+const rest = ref<RunningRest | null>(JSON.parse(readLocal(restKey.value) ?? 'null') as RunningRest | null)
+function startRest(r: RestRequest) {
+  rest.value = { ...r, startedAt: Date.now() }
+  writeLocal(restKey.value, JSON.stringify(rest.value))
+}
+function stopRest() {
+  rest.value = null
+  writeLocal(restKey.value, null)
+}
+watch(finished, (f) => f && stopRest())
 
 // Session note
 const note = ref('')
@@ -122,6 +154,7 @@ onBeforeUnmount(() => {
 
     <section v-if="finished" class="card stack done" aria-label="Resumen de la sesión">
       <h2>Sesión terminada<template v-if="duration"> · {{ duration }}</template></h2>
+      <SessionRecords :workout-id="model.workout.id" />
       <ul class="lines">
         <li v-for="(l, i) in summary" :key="i">{{ l }}</li>
       </ul>
@@ -153,6 +186,7 @@ onBeforeUnmount(() => {
           :exercises="model.exercises"
           :sleep-quality="model.sleepQuality"
           :live="!finished"
+          @rest="startRest"
         />
       </section>
       <ExerciseCard
@@ -161,6 +195,7 @@ onBeforeUnmount(() => {
         :exercises="model.exercises"
         :sleep-quality="model.sleepQuality"
         :live="!finished"
+        @rest="startRest"
       />
     </template>
 
@@ -175,6 +210,13 @@ onBeforeUnmount(() => {
       </button>
       <button v-if="confirmingFinish" type="button" class="btn btn-quiet" @click="confirmingFinish = false">Seguir entrenando</button>
     </template>
+
+    <button type="button" class="btn btn-danger remove" @click="removeSession">
+      {{ confirmingDelete ? 'Toca otra vez para borrarla entera' : finished ? 'Borrar sesión' : 'Descartar sesión' }}
+    </button>
+    <button v-if="confirmingDelete" type="button" class="btn btn-quiet" @click="confirmingDelete = false">No borrar</button>
+
+    <RestBar v-if="rest && !finished" :key="rest.startedAt" v-bind="rest" @stop="stopRest" />
   </div>
 </template>
 
@@ -243,5 +285,8 @@ onBeforeUnmount(() => {
 .finish.confirm {
   background: var(--ink);
   color: var(--bg);
+}
+.remove {
+  margin-top: 16px;
 }
 </style>

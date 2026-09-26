@@ -2,12 +2,15 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { db } from '../data/instance'
 import type { SessionExercise } from '../data/queries'
-import { addSet, deleteSet, updateWorkoutExercise } from '../data/session'
+import { addSet, deleteSet, restoreSet, updateWorkoutExercise } from '../data/session'
+import { platesShownFor, setPlatesShownFor } from '../ui/plateSettings'
+import { showToast } from '../ui/toast'
 import { readLocal, writeLocal } from '../data/storage'
 import { formatShortDate } from '../domain/dates'
 import { formatExerciseLine, formatTarget } from '../domain/format'
 import { lastAny, lastWorkingSetAs, workingSetsByExercise } from '../domain/history'
 import { suggest, suggestedLoad, suggestionText } from '../domain/progression'
+import type { RestRequest } from '../domain/rest'
 import { draftSet } from '../domain/setDraft'
 import type { AltReason, Exercise, SleepQuality } from '../domain/types'
 import SetRow from './SetRow.vue'
@@ -19,6 +22,15 @@ const props = defineProps<{
   /** Unfinished session: show suggestions. */
   live: boolean
 }>()
+
+const emit = defineEmits<{ rest: [request: RestRequest] }>()
+
+// Rest with the plan's range, when the plan has one.
+function startRest() {
+  const p = props.item.plan
+  if (!props.live || !p) return
+  emit('rest', { name: active.value?.name ?? planned.value?.name ?? '', minSec: p.restSecMin, maxSec: p.restSecMax })
+}
 
 const we = computed(() => props.item.workoutExercise)
 const planned = computed(() => props.item.planned)
@@ -38,6 +50,11 @@ const alternatives = computed(() =>
     .filter((a): a is { exercise: Exercise; reason: AltReason } => a.exercise !== undefined),
 )
 const altOpen = ref(false)
+
+const platesOn = computed(() => (active.value ? platesShownFor(active.value.id) : false))
+function togglePlates() {
+  if (active.value) setPlatesShownFor(active.value.id, !platesOn.value)
+}
 function choose(id: string) {
   chosenId.value = id
   writeLocal(altKey.value, id)
@@ -90,8 +107,9 @@ async function onAdd() {
   await addSet(db, we.value.id, ex.id, (previous) => draftSet(ex, targetMin, previous, lastTime, suggested))
 }
 
-function removeSet(id: string) {
-  void deleteSet(db, id)
+async function removeSet(id: string) {
+  await deleteSet(db, id)
+  showToast('Serie borrada.', { label: 'Deshacer', run: () => restoreSet(db, id) })
 }
 
 // Exercise note: saved while typing (debounced) and on blur.
@@ -137,10 +155,16 @@ onBeforeUnmount(saveNote)
       {{ suggestionMessage }}
     </p>
 
-    <div v-if="alternatives.length" class="alt">
-      <button type="button" class="btn btn-quiet alt-toggle" :aria-expanded="altOpen" @click="altOpen = !altOpen">
-        Alternativa
-      </button>
+    <div class="alt">
+      <div class="tools">
+        <button v-if="alternatives.length" type="button" class="btn btn-quiet alt-toggle" :aria-expanded="altOpen" @click="altOpen = !altOpen">
+          Alternativa
+        </button>
+        <button v-if="active && !active.bodyweight" type="button" class="btn btn-quiet alt-toggle" @click="togglePlates">
+          {{ platesOn ? 'Ocultar discos' : 'Ver discos' }}
+        </button>
+        <RouterLink v-if="active" :to="`/ejercicio/${active.id}`" class="btn btn-quiet alt-toggle">Historial</RouterLink>
+      </div>
       <div v-if="altOpen" class="alt-list" role="group" aria-label="Elegir ejercicio">
         <button v-if="planned" type="button" class="chip alt-chip" :aria-pressed="activeId === planned.id" @click="choose(planned.id)">
           {{ planned.name }} <span class="reason">plan</span>
@@ -167,10 +191,14 @@ onBeforeUnmount(saveNote)
         :exercise="exercises.get(s.exerciseId) ?? active!"
         :alt-name="planned && s.exerciseId !== planned.id ? (exercises.get(s.exerciseId)?.name ?? null) : null"
         @remove="removeSet(s.id)"
+        @done="startRest"
       />
     </div>
 
-    <button type="button" class="btn btn-primary btn-block" @click="onAdd">Añadir serie</button>
+    <div class="add-row">
+      <button type="button" class="btn btn-primary add" @click="onAdd">Añadir serie</button>
+      <button v-if="live && item.plan" type="button" class="btn rest" @click="startRest">Descansar</button>
+    </div>
 
     <div>
       <label class="field-label" :for="`note-${we.id}`">Nota del ejercicio</label>
@@ -197,10 +225,25 @@ onBeforeUnmount(saveNote)
   font-size: 17px;
   font-weight: 700;
 }
+.add-row {
+  display: flex;
+  gap: 8px;
+}
+.add-row .add {
+  flex: 1;
+}
+.add-row .rest {
+  min-height: 56px;
+}
 .last {
   background: var(--surface-2);
   border-radius: var(--radius-sm);
   padding: 8px 12px;
+}
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
 }
 .alt-toggle {
   padding: 0 4px;

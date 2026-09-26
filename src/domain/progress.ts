@@ -72,6 +72,52 @@ export function e1rmSeries(
   )
 }
 
+export interface SessionRecord {
+  exerciseId: string
+  value: number
+  previous: number
+}
+
+/**
+ * Exercises of a session whose best e1RM beats every earlier session of that
+ * exercise. A first time is not a record: there is nothing to beat.
+ */
+export function sessionRecords(
+  workoutId: string,
+  exercises: Exercise[],
+  workouts: Workout[],
+  workoutExercises: WorkoutExercise[],
+  sets: SetLog[],
+  measurements: Measurement[],
+): SessionRecord[] {
+  const workout = workouts.find((w) => w.id === workoutId && isAlive(w))
+  if (!workout) return []
+  const ownWes = workoutExercises.filter((we) => isAlive(we) && we.workoutId === workoutId).sort((a, b) => a.order - b.order)
+  const weOrder = new Map(ownWes.map((we, i) => [we.id, i]))
+  // Exercises done in this session, in session order.
+  const done = new Map<string, number>()
+  for (const s of sets) {
+    const order = weOrder.get(s.workoutExerciseId)
+    if (order === undefined || !isAlive(s) || s.isWarmup) continue
+    done.set(s.exerciseId, Math.min(done.get(s.exerciseId) ?? Infinity, order))
+  }
+  const startedAt = new Map(workouts.map((w) => [w.id, w.startedAt]))
+  const isEarlier = (p: E1rmPoint) => p.date < workout.date || (p.date === workout.date && startedAt.get(p.workoutId)! < workout.startedAt)
+
+  const out: (SessionRecord & { order: number })[] = []
+  for (const [exerciseId, order] of done) {
+    const exercise = exercises.find((e) => e.id === exerciseId && isAlive(e))
+    if (!exercise) continue
+    const points = e1rmSeries(exercise, workouts, workoutExercises, sets, measurements)
+    const now = points.find((p) => p.workoutId === workoutId)
+    const before = points.filter(isEarlier)
+    if (!now || before.length === 0) continue
+    const previous = Math.max(...before.map((p) => p.value))
+    if (now.value > previous) out.push({ exerciseId, value: now.value, previous, order })
+  }
+  return out.sort((a, b) => a.order - b.order).map(({ order: _order, ...r }) => r)
+}
+
 /** Exercises (measured in reps) with at least one set logged as themselves, in catalog order. */
 export function exercisesWithSets(exercises: Exercise[], sets: SetLog[]): Exercise[] {
   const done = new Set(sets.filter((s) => isAlive(s) && !s.isWarmup).map((s) => s.exerciseId))

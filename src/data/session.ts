@@ -31,6 +31,61 @@ export async function reopenWorkout(db: EntrenoDB, workoutId: string, now = nowI
 }
 
 /**
+ * Finishes a session left open on an earlier day, at the time of its last change
+ * (its last set, or its start if it has none), not at the moment you notice it.
+ */
+export async function finishForgottenWorkout(db: EntrenoDB, workoutId: string, now = nowIso()): Promise<void> {
+  await db.transaction('rw', [db.workouts, db.workoutExercises, db.sets], async () => {
+    const workout = await db.workouts.get(workoutId)
+    if (!workout) return
+    const wes = await db.workoutExercises.where('workoutId').equals(workoutId).toArray()
+    const sets = await db.sets
+      .where('workoutExerciseId')
+      .anyOf(wes.map((w) => w.id))
+      .toArray()
+    const lastChange = sets
+      .filter((s) => s.deletedAt === null)
+      .reduce((max, s) => (s.updatedAt > max ? s.updatedAt : max), workout.startedAt)
+    await db.workouts.update(workoutId, { finishedAt: lastChange, updatedAt: now })
+  })
+}
+
+/**
+ * Logically deletes a session with its exercises and sets, all stamped with the
+ * same `now` so restoreWorkout can bring back exactly what this call removed.
+ */
+export async function deleteWorkout(db: EntrenoDB, workoutId: string, now = nowIso()): Promise<string> {
+  await db.transaction('rw', [db.workouts, db.workoutExercises, db.sets], async () => {
+    const wes = await db.workoutExercises.where('workoutId').equals(workoutId).toArray()
+    const alive = <T extends { deletedAt: string | null }>(rows: T[]) => rows.filter((r) => r.deletedAt === null)
+    const sets = await db.sets
+      .where('workoutExerciseId')
+      .anyOf(wes.map((w) => w.id))
+      .toArray()
+    await db.sets.bulkPut(alive(sets).map((s) => ({ ...s, deletedAt: now, updatedAt: now })))
+    await db.workoutExercises.bulkPut(alive(wes).map((w) => ({ ...w, deletedAt: now, updatedAt: now })))
+    await db.workouts.update(workoutId, { deletedAt: now, updatedAt: now })
+  })
+  return now
+}
+
+/** Undoes deleteWorkout: restores the rows deleted at `deletedAt`, leaving older deletions alone. */
+export async function restoreWorkout(db: EntrenoDB, workoutId: string, deletedAt: string, now = nowIso()): Promise<void> {
+  await db.transaction('rw', [db.workouts, db.workoutExercises, db.sets], async () => {
+    const wes = await db.workoutExercises.where('workoutId').equals(workoutId).toArray()
+    const sets = await db.sets
+      .where('workoutExerciseId')
+      .anyOf(wes.map((w) => w.id))
+      .toArray()
+    const back = <T extends { deletedAt: string | null }>(rows: T[]) =>
+      rows.filter((r) => r.deletedAt === deletedAt).map((r) => ({ ...r, deletedAt: null, updatedAt: now }))
+    await db.sets.bulkPut(back(sets))
+    await db.workoutExercises.bulkPut(back(wes))
+    await db.workouts.update(workoutId, { deletedAt: null, updatedAt: now })
+  })
+}
+
+/**
  * Adds a set. `values` may be a function of the previous alive set, read inside
  * the same transaction so it sees every change already queued for that set.
  */
@@ -73,6 +128,10 @@ export async function updateSet(db: EntrenoDB, id: string, patch: SetPatch, now 
 
 export async function deleteSet(db: EntrenoDB, id: string, now = nowIso()): Promise<void> {
   await db.sets.update(id, { deletedAt: now, updatedAt: now })
+}
+
+export async function restoreSet(db: EntrenoDB, id: string, now = nowIso()): Promise<void> {
+  await db.sets.update(id, { deletedAt: null, updatedAt: now })
 }
 
 export async function updateWorkoutExercise(

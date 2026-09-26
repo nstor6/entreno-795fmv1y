@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bodyweightOn, e1rm, e1rmSeries, exercisesWithSets, measurementSeries, sleepKneeByDay } from './progress'
+import { bodyweightOn, e1rm, e1rmSeries, exercisesWithSets, measurementSeries, sessionRecords, sleepKneeByDay } from './progress'
 import type { DailyLog, Exercise, Measurement, SetLog, Workout, WorkoutExercise } from './types'
 
 describe('e1rm (SPEC §11)', () => {
@@ -123,6 +123,40 @@ describe('e1rmSeries', () => {
   it('lists exercises with working sets, in catalog order', () => {
     const list = exercisesWithSets([ex('sentadilla'), ex('press-banca'), ex('dominadas'), ex('paseo', { measure: 'meters' })], sets)
     expect(list.map((e) => e.id)).toEqual(['press-banca', 'dominadas'])
+  })
+})
+
+describe('sessionRecords', () => {
+  const ws = [workout('w1', '2026-09-20'), workout('w2', '2026-09-24'), workout('w3', '2026-09-27')]
+  const wes = [
+    we('a1', 'w1', 'press-banca'),
+    we('a2', 'w2', 'press-banca'),
+    we('a3', 'w3', 'press-banca'),
+    { ...we('s3', 'w3', 'sentadilla'), order: 0 },
+    we('r3', 'w3', 'remo'),
+  ]
+  const exercises = [ex('press-banca'), ex('sentadilla'), ex('remo')]
+  const sets = [
+    set('a1', 'press-banca', 60, 8, 2), // 80
+    set('a2', 'press-banca', 60, 8, 3), // 82
+    set('a3', 'press-banca', 62.5, 8, 2), // 83,33 → record over 82
+    set('a3', 'press-banca', 70, 3, 0, { isWarmup: true }), // warm-up: ignored
+    set('s3', 'sentadilla', 80, 8, 2), // first time: not a record
+    set('r3', 'remo', 50, 8, 2), // done before? no → first time
+  ]
+
+  it('beats every earlier session; first times are not records', () => {
+    expect(sessionRecords('w3', exercises, ws, wes, sets, [])).toEqual([{ exerciseId: 'press-banca', value: 83.33, previous: 82 }])
+  })
+
+  it('only earlier sessions count: editing an old one does not compare with the future', () => {
+    expect(sessionRecords('w2', exercises, ws, wes, sets, [])).toEqual([{ exerciseId: 'press-banca', value: 82, previous: 80 }])
+    expect(sessionRecords('w1', exercises, ws, wes, sets, [])).toEqual([])
+  })
+
+  it('a tie is not a record', () => {
+    const tie = [...sets.filter((s) => s.workoutExerciseId !== 'a3'), set('a3', 'press-banca', 60, 8, 3)]
+    expect(sessionRecords('w3', exercises, ws, wes, tie, [])).toEqual([])
   })
 })
 

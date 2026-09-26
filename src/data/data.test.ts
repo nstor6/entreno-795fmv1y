@@ -3,10 +3,19 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import rutina from '../../data/rutina-fase1.json'
 import { backupFileName, exportBackup, restoreBackup, validateBackup } from './backup'
 import { EntrenoDB, TABLE_NAMES } from './db'
-import { addMeasurement, deleteMeasurement, saveDailyLog, updateMeasurement } from './diary'
+import { addMeasurement, deleteMeasurement, restoreMeasurement, saveDailyLog, updateMeasurement } from './diary'
 import { importRoutine } from './importRoutine'
 import { loadWeekSummary } from './queries'
-import { addSet, deleteSet, finishWorkout, startWorkout } from './session'
+import {
+  addSet,
+  deleteSet,
+  deleteWorkout,
+  finishForgottenWorkout,
+  finishWorkout,
+  restoreSet,
+  restoreWorkout,
+  startWorkout,
+} from './session'
 
 let db: EntrenoDB
 let n = 0
@@ -129,6 +138,59 @@ describe('session writes', () => {
 
     await finishWorkout(db, id, '2026-09-25T18:00:00.000Z')
     expect((await db.workouts.get(id))?.finishedAt).toBe('2026-09-25T18:00:00.000Z')
+  })
+})
+
+describe('discarding and restoring', () => {
+  const values = { loadKg: 60, reps: 8, distanceM: null, durationS: null, rir: 3 }
+
+  it('deletes a session with its exercises and sets, and undo restores exactly those', async () => {
+    await importRoutine(db, rutina, 'T1')
+    const id = await startWorkout(db, 'fase1-a', '2026-09-25', 'T2')
+    const [we1] = await db.workoutExercises.where('workoutId').equals(id).sortBy('order')
+    const kept = await addSet(db, we1!.id, 'sentadilla-trasera', values, 'T3')
+    const older = await addSet(db, we1!.id, 'sentadilla-trasera', values, 'T3')
+    await deleteSet(db, older.id, 'T4') // deleted before: must stay deleted after undo
+
+    const ts = await deleteWorkout(db, id, 'T5')
+    expect((await db.workouts.get(id))?.deletedAt).toBe('T5')
+    expect((await db.workoutExercises.where('workoutId').equals(id).toArray()).every((w) => w.deletedAt === 'T5')).toBe(true)
+    expect((await db.sets.get(kept.id))?.deletedAt).toBe('T5')
+
+    await restoreWorkout(db, id, ts, 'T6')
+    expect((await db.workouts.get(id))?.deletedAt).toBeNull()
+    expect((await db.workoutExercises.where('workoutId').equals(id).toArray()).every((w) => w.deletedAt === null)).toBe(true)
+    expect((await db.sets.get(kept.id))?.deletedAt).toBeNull()
+    expect((await db.sets.get(older.id))?.deletedAt).toBe('T4')
+  })
+
+  it('finishes a forgotten session at its last change', async () => {
+    await importRoutine(db, rutina, 'T1')
+    const id = await startWorkout(db, 'fase1-a', '2026-09-25', '2026-09-25T17:00:00.000Z')
+    const [we1] = await db.workoutExercises.where('workoutId').equals(id).sortBy('order')
+    await addSet(db, we1!.id, 'sentadilla-trasera', values, '2026-09-25T17:20:00.000Z')
+    await addSet(db, we1!.id, 'sentadilla-trasera', values, '2026-09-25T17:30:00.000Z')
+    await finishForgottenWorkout(db, id, '2026-09-28T08:00:00.000Z')
+    expect((await db.workouts.get(id))?.finishedAt).toBe('2026-09-25T17:30:00.000Z')
+
+    const empty = await startWorkout(db, 'fase1-b', '2026-09-26', '2026-09-26T09:00:00.000Z')
+    await finishForgottenWorkout(db, empty, '2026-09-28T08:00:00.000Z')
+    expect((await db.workouts.get(empty))?.finishedAt).toBe('2026-09-26T09:00:00.000Z')
+  })
+
+  it('restores a deleted set and measurement', async () => {
+    await importRoutine(db, rutina, 'T1')
+    const id = await startWorkout(db, 'fase1-a', '2026-09-25', 'T2')
+    const [we1] = await db.workoutExercises.where('workoutId').equals(id).sortBy('order')
+    const s = await addSet(db, we1!.id, 'sentadilla-trasera', values, 'T3')
+    await deleteSet(db, s.id, 'T4')
+    await restoreSet(db, s.id, 'T5')
+    expect(await db.sets.get(s.id)).toMatchObject({ deletedAt: null, updatedAt: 'T5' })
+
+    const m = await addMeasurement(db, { date: '2026-09-25', weightKg: 80, waistCm: null, note: '' }, 'T1')
+    await deleteMeasurement(db, m, 'T2')
+    await restoreMeasurement(db, m, 'T3')
+    expect((await db.measurements.get(m))?.deletedAt).toBeNull()
   })
 })
 

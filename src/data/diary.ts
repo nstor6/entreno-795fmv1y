@@ -47,3 +47,7 @@ export async function updateMeasurement(db: EntrenoDB, id: string, input: Measur
 export async function deleteMeasurement(db: EntrenoDB, id: string, now = nowIso()): Promise<void> {
   await db.measurements.update(id, { deletedAt: now, updatedAt: now })
 }
+
+export async function restoreMeasurement(db: EntrenoDB, id: string, now = nowIso()): Promise<void> {
+  await db.measurements.update(id, { deletedAt: null, updatedAt: now })
+}

@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { db } from '../data/instance'
 import { updateSet, type SetPatch } from '../data/session'
+import { platesPerSide, platesText } from '../domain/plates'
+import { plateSettings, platesShownFor } from '../ui/plateSettings'
 import { loadStep, stepValue, valueStep } from '../domain/setDraft'
 import type { Exercise, SetLog } from '../domain/types'
 import NumberStepper from './NumberStepper.vue'
 
 const props = defineProps<{ set: SetLog; index: number; exercise: Exercise; altName: string | null }>()
-const emit = defineEmits<{ remove: [] }>()
+// done: an RIR was just logged, i.e. the set was finished (starts the rest timer).
+const emit = defineEmits<{ remove: []; done: [] }>()
 
 const RIRS = [0, 1, 2, 3, 4, 5] as const
 const KNEE = Array.from({ length: 11 }, (_, i) => i)
@@ -39,6 +42,12 @@ function pick(src: SetLog): SetPatch {
   return { loadKg, reps, distanceM, durationS, rir, isWarmup, kneePain }
 }
 
+function setRir(r: number) {
+  const next = s.rir === r ? null : r
+  patch({ rir: next })
+  if (next !== null) emit('done')
+}
+
 function value(): number | null {
   return s[valueKey[props.exercise.measure]]
 }
@@ -48,18 +57,13 @@ function setValue(v: number | null) {
 
 const kneeOpen = ref(props.set.kneePain !== null)
 
-const confirmingDelete = ref(false)
-let confirmTimer: ReturnType<typeof setTimeout> | undefined
-function onDelete() {
-  if (confirmingDelete.value) {
-    clearTimeout(confirmTimer)
-    emit('remove')
-    return
-  }
-  confirmingDelete.value = true
-  confirmTimer = setTimeout(() => (confirmingDelete.value = false), 3000)
-}
-onBeforeUnmount(() => clearTimeout(confirmTimer))
+// Plates per side, when switched on for this exercise in its card.
+const plates = computed(() => {
+  if (props.exercise.bodyweight || s.loadKg === null || !platesShownFor(props.exercise.id)) return null
+  const { barKg, plates: available } = plateSettings.value
+  return platesText(platesPerSide(s.loadKg, barKg, available), barKg)
+})
+
 </script>
 
 <template>
@@ -72,7 +76,7 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
       <button type="button" class="chip mini" :aria-pressed="s.isWarmup" @click="patch({ isWarmup: !s.isWarmup })">
         Calentamiento
       </button>
-      <button type="button" class="chip mini danger" @click="onDelete">{{ confirmingDelete ? '¿Borrar?' : 'Borrar' }}</button>
+      <button type="button" class="chip mini danger" @click="emit('remove')">Borrar</button>
     </div>
 
     <NumberStepper
@@ -83,6 +87,7 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
       @change="(v) => patch({ loadKg: v })"
       @step="(d) => patch({ loadKg: stepValue(s.loadKg, d) })"
     />
+    <p v-if="plates" class="plates small">{{ plates }}</p>
     <NumberStepper
       :value="value()"
       :step="valueStep(exercise.measure)"
@@ -101,7 +106,7 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
           type="button"
           class="chip num-chip"
           :aria-pressed="s.rir === r"
-          @click="patch({ rir: s.rir === r ? null : r })"
+          @click="setRir(r)"
         >
           {{ r === 5 ? '5+' : r }}
         </button>
@@ -155,6 +160,11 @@ onBeforeUnmount(() => clearTimeout(confirmTimer))
 .danger {
   color: var(--alarm-ink);
   background: transparent;
+}
+.plates {
+  margin: -4px 0 0 70px;
+  color: var(--ink-2);
+  font-weight: 700;
 }
 .knee-toggle {
   align-self: flex-start;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { lastAny, lastWorkingSetAs, recordsOf, workingSetsByExercise } from './history'
+import { exerciseHistory, lastAny, lastWorkingSetAs, recordsOf, workingSetsByExercise } from './history'
 import type { SetLog, Workout, WorkoutExercise } from './types'
 
 const base = { createdAt: 'T', updatedAt: 'T', deletedAt: null }
@@ -85,6 +85,27 @@ describe('recordsOf', () => {
     const early = workout('early', '2026-10-05', '2026-10-05T08:00')
     const r = recordsOf('press-banca', current, [...workouts, early], [...wes, we('eEarly', 'early')], sets)
     expect(r.map((x) => x.workout.id)).toEqual(['w1', 'w2', 'w3', 'early'])
+  })
+})
+
+describe('exerciseHistory', () => {
+  it('lists sessions where the exercise was done, as planned or as an alternative, newest first', () => {
+    const ws = [workout('a', '2026-09-20'), workout('b', '2026-09-24'), workout('c', '2026-09-27'), workout('d', '2026-09-28', undefined, 'X')]
+    const wes = [we('ea', 'a'), we('eb', 'b', 'sentadilla-trasera'), we('ec', 'c'), we('ed', 'd')]
+    const ss = [
+      set('1', 'ea', 1),
+      set('2', 'ea', 2, { isWarmup: true }),
+      set('3', 'eb', 1, { exerciseId: 'press-banca' }), // done as press banca in place of another exercise
+      set('4', 'ec', 1, { exerciseId: 'jalon-al-pecho' }), // alternative: not press banca
+      set('5', 'ed', 1), // deleted workout
+      set('6', 'ea', 3, { deletedAt: 'X' }),
+    ]
+    const h = exerciseHistory('press-banca', ws, wes, ss)
+    expect(h.map((e) => [e.workout.id, e.sets.map((s) => s.id)])).toEqual([
+      ['b', ['3']],
+      ['a', ['1']],
+    ])
+    expect(h[0]!.workoutExercise.plannedExerciseId).toBe('sentadilla-trasera')
   })
 })
 

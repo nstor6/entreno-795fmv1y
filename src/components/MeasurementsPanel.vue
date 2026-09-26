@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import NumberStepper from './NumberStepper.vue'
-import { addMeasurement, deleteMeasurement, updateMeasurement } from '../data/diary'
+import { addMeasurement, deleteMeasurement, restoreMeasurement, updateMeasurement } from '../data/diary'
+import { showToast } from '../ui/toast'
 import { db } from '../data/instance'
 import { useLive } from '../data/live'
 import { loadMeasurements } from '../data/queries'
@@ -62,15 +63,13 @@ async function save() {
   saved.value = id ? 'Cambios guardados.' : 'Medida guardada.'
 }
 
-const confirmingDelete = ref(false)
 async function remove() {
   if (!editingId.value) return
-  if (!confirmingDelete.value) return void (confirmingDelete.value = true)
   const id = editingId.value
   resetPending = true
   await deleteMeasurement(db, id)
-  confirmingDelete.value = false
-  saved.value = 'Medida borrada.'
+  saved.value = null
+  showToast('Medida borrada.', { label: 'Deshacer', run: () => restoreMeasurement(db, id) })
 }
 
 const title = computed(() => (editingId.value ? `Editar medida · ${formatShortDate(form.date)}` : 'Nueva medida'))
@@ -115,7 +114,7 @@ function describe(m: Measurement): string {
       <button type="submit" class="btn btn-primary">{{ editingId ? 'Guardar cambios' : 'Guardar medida' }}</button>
       <template v-if="editingId">
         <button type="button" class="btn btn-quiet" @click="resetForm">Cancelar</button>
-        <button type="button" class="btn btn-danger" @click="remove">{{ confirmingDelete ? 'Toca otra vez para borrar' : 'Borrar medida' }}</button>
+        <button type="button" class="btn btn-danger" @click="remove">Borrar medida</button>
       </template>
       <p v-if="saved && !editingId" class="notice notice-info" role="status">{{ saved }}</p>
     </form>

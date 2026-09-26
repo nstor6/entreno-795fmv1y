@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
+import ToastBar from './components/ToastBar.vue'
 
 const tabs = [
   { to: '/', label: 'Hoy', icon: 'M4 11l8-7 8 7v9h-5v-6H9v6H4z' },
@@ -24,13 +25,14 @@ const tabs = [
       <span>{{ t.label }}</span>
     </RouterLink>
   </nav>
+  <ToastBar />
 </template>
 
 <style scoped>
 .page {
   max-width: 560px;
   margin: 0 auto;
-  padding: 16px 16px calc(var(--nav-h) + 24px + env(safe-area-inset-bottom));
+  padding: 16px 16px calc(var(--nav-h) + var(--rest-bar-h, 0px) + 24px + env(safe-area-inset-bottom));
 }
 .tabbar {
   position: fixed;

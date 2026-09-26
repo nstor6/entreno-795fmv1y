@@ -120,6 +120,7 @@ const latest = <T,>(xs: T[]) => xs[xs.length - 1]
             :tooltip-lines="(i) => [`${formatNumber(e1rmPoints[i]!.value)} kg estimado`, setText(i)]"
           />
           <p class="muted small">Es una estimación: sirve para ver la tendencia, no como marca real.</p>
+          <RouterLink v-if="exercise" :to="`/ejercicio/${exercise.id}`" class="btn btn-quiet history-link">Ver todas las series de {{ exercise.name.toLowerCase() }}</RouterLink>
           <details>
             <summary class="muted small">Ver datos</summary>
             <table class="data">
@@ -249,5 +250,9 @@ const latest = <T,>(xs: T[]) => xs[xs.length - 1]
 }
 .section-title {
   margin-top: 8px;
+}
+.history-link {
+  justify-content: flex-start;
+  padding: 0 4px;
 }
 </style>
