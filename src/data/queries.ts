@@ -116,6 +116,28 @@ export async function loadWeekSummary(db: EntrenoDB, weekStart: string): Promise
   return { text, week: weekNumber(routine.startDate, weekStart) }
 }
 
+export interface ProgressData {
+  exercises: Exercise[]
+  workouts: Workout[]
+  workoutExercises: WorkoutExercise[]
+  sets: SetLog[]
+  measurements: Measurement[]
+  dailyLogs: DailyLog[]
+}
+
+/** Everything the charts need; the domain functions filter deleted records. */
+export async function loadProgress(db: EntrenoDB): Promise<ProgressData> {
+  const [exercises, workouts, workoutExercises, sets, measurements, dailyLogs] = await Promise.all([
+    db.exercises.toArray(),
+    db.workouts.toArray(),
+    db.workoutExercises.toArray(),
+    db.sets.toArray(),
+    db.measurements.toArray(),
+    db.dailyLogs.toArray(),
+  ])
+  return { exercises, workouts, workoutExercises, sets, measurements, dailyLogs }
+}
+
 export async function loadMeasurements(db: EntrenoDB): Promise<Measurement[]> {
   const rows = (await db.measurements.toArray()).filter(isAlive)
   return rows.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))

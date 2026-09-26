@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import NumberStepper from '../components/NumberStepper.vue'
+import NumberStepper from './NumberStepper.vue'
 import { addMeasurement, deleteMeasurement, updateMeasurement } from '../data/diary'
 import { db } from '../data/instance'
 import { useLive } from '../data/live'
@@ -16,6 +16,7 @@ const form = reactive({ date: localDate(), weightKg: null as number | null, wais
 const editingId = ref<string | null>(null)
 const error = ref<string | null>(null)
 const saved = ref<string | null>(null)
+const formEl = ref<HTMLFormElement | null>(null)
 
 // A new measurement starts from the latest one, so the +/− buttons only nudge it.
 function resetForm() {
@@ -42,7 +43,7 @@ function edit(m: Measurement) {
   editingId.value = m.id
   error.value = null
   saved.value = null
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  formEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 function step(field: 'weightKg' | 'waistCm', delta: number) {
@@ -83,10 +84,8 @@ function describe(m: Measurement): string {
 </script>
 
 <template>
-  <div class="stack">
-    <header class="head"><h1>Medidas</h1></header>
-
-    <form class="card stack" @submit.prevent="save">
+  <section class="stack" aria-label="Medidas">
+    <form ref="formEl" class="card stack measure-form" @submit.prevent="save">
       <h2>{{ title }}</h2>
       <div>
         <label class="field-label" for="m-date">Fecha</label>
@@ -137,12 +136,12 @@ function describe(m: Measurement): string {
         </button>
       </li>
     </ul>
-  </div>
+  </section>
 </template>
 
 <style scoped>
-.head {
-  padding: 8px 0 4px;
+.measure-form {
+  scroll-margin-top: 16px;
 }
 .date {
   width: 100%;
