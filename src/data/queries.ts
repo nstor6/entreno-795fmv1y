@@ -1,5 +1,7 @@
 // Read models for the screens, meant to run inside useLive().
+import { addDays } from '../domain/dates'
 import { recordsOf, type ExerciseRecord } from '../domain/history'
+import { weeklySummary } from '../domain/summary'
 import { kneePainDates, kneeStatus, type KneeStatus } from '../domain/knee'
 import { nextDay, trainedYesterday } from '../domain/nextSession'
 import {
@@ -74,6 +76,44 @@ export async function loadToday(db: EntrenoDB, today: string): Promise<TodayMode
     trainedYesterday: trainedYesterday(workouts, today),
     ...common,
   }
+}
+
+export interface SummaryModel {
+  /** Null when there is no active routine. */
+  text: string | null
+  week: number | null
+}
+
+export async function loadWeekSummary(db: EntrenoDB, weekStart: string): Promise<SummaryModel> {
+  const routine = (await db.routines.toArray()).find((r) => r.active && isAlive(r))
+  if (!routine) return { text: null, week: null }
+  const weekEnd = addDays(weekStart, 6)
+  const [dailyLogs, measurements, workouts, allExercises] = await Promise.all([
+    db.dailyLogs.where('date').between(weekStart, weekEnd, true, true).toArray(),
+    db.measurements.where('date').between(weekStart, weekEnd, true, true).toArray(),
+    db.workouts.where('date').between(weekStart, weekEnd, true, true).toArray(),
+    db.exercises.toArray(),
+  ])
+  const workoutExercises = await db.workoutExercises
+    .where('workoutId')
+    .anyOf(workouts.map((w) => w.id))
+    .toArray()
+  const sets = await db.sets
+    .where('workoutExerciseId')
+    .anyOf(workoutExercises.map((w) => w.id))
+    .toArray()
+  const text = weeklySummary({
+    shortName: routine.shortName,
+    startDate: routine.startDate,
+    weekStart,
+    dailyLogs,
+    measurements,
+    workouts,
+    workoutExercises,
+    sets,
+    exercises: new Map(allExercises.map((e) => [e.id, e])),
+  })
+  return { text, week: weekNumber(routine.startDate, weekStart) }
 }
 
 export async function loadMeasurements(db: EntrenoDB): Promise<Measurement[]> {

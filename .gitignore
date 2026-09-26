@@ -9,3 +9,5 @@ dev-dist
 /CLAUDE.md
 /docs/
 /data/
+# Tests with data from the private SPEC fixtures (body measurements, notes): local only
+*.private.test.ts

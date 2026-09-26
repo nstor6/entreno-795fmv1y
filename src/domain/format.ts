@@ -4,7 +4,7 @@ import type { Exercise, Measure, SetLog } from './types'
 
 const NUMBER = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2, useGrouping: false })
 
-/** Comma decimal, no trailing zeros: 62,5 · 60 · 94,2 */
+/** Comma decimal, no trailing zeros: 62,5 · 60 · 71,3 */
 export function formatNumber(n: number): string {
   return NUMBER.format(n)
 }

@@ -24,6 +24,19 @@ export function backupFileName(at = new Date()): string {
   return `entreno-backup-${localDate(at)}.json`
 }
 
+/** Exports and downloads the backup file. Returns its file name. */
+export async function downloadBackup(db: EntrenoDB): Promise<string> {
+  const backup = await exportBackup(db)
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = backupFileName()
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  return a.download
+}
+
 export type BackupValidation = { ok: true; value: Backup } | { ok: false; errors: string[] }
 
 export function validateBackup(raw: unknown): BackupValidation {

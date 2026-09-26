@@ -5,6 +5,7 @@ import { backupFileName, exportBackup, restoreBackup, validateBackup } from './b
 import { EntrenoDB, TABLE_NAMES } from './db'
 import { addMeasurement, deleteMeasurement, saveDailyLog, updateMeasurement } from './diary'
 import { importRoutine } from './importRoutine'
+import { loadWeekSummary } from './queries'
 import { addSet, deleteSet, finishWorkout, startWorkout } from './session'
 
 let db: EntrenoDB
@@ -145,11 +146,30 @@ describe('daily log and measurements', () => {
   })
 
   it('adds, edits and logically deletes measurements', async () => {
-    const id = await addMeasurement(db, { date: '2026-10-04', weightKg: 94.2, waistCm: 101, note: '' }, 'T1')
-    await updateMeasurement(db, id, { date: '2026-10-04', weightKg: 94, waistCm: 100.5, note: 'en ayunas' }, 'T2')
-    expect(await db.measurements.get(id)).toMatchObject({ weightKg: 94, waistCm: 100.5, createdAt: 'T1', updatedAt: 'T2' })
+    const id = await addMeasurement(db, { date: '2026-10-04', weightKg: 80.5, waistCm: 90, note: '' }, 'T1')
+    await updateMeasurement(db, id, { date: '2026-10-04', weightKg: 80, waistCm: 89.5, note: 'en ayunas' }, 'T2')
+    expect(await db.measurements.get(id)).toMatchObject({ weightKg: 80, waistCm: 89.5, createdAt: 'T1', updatedAt: 'T2' })
     await deleteMeasurement(db, id, 'T3')
     expect((await db.measurements.get(id))?.deletedAt).toBe('T3')
+  })
+})
+
+describe('loadWeekSummary', () => {
+  it('reads the week from the database and formats it', async () => {
+    await importRoutine(db, rutina, 'T1')
+    const id = await startWorkout(db, 'fase1-a', '2026-09-30', '2026-09-30T17:00:00.000Z')
+    const bench = (await db.workoutExercises.where('workoutId').equals(id).toArray()).find((w) => w.plannedExerciseId === 'press-banca')!
+    await addSet(db, bench.id, 'press-banca', { loadKg: 60, reps: 8, distanceM: null, durationS: null, rir: 3 })
+    await saveDailyLog(db, '2026-09-28', { sleepHours: 7 })
+    await saveDailyLog(db, '2026-10-05', { sleepHours: 3, sleepQuality: 'bad' }) // next week: ignored
+    const { text, week } = await loadWeekSummary(db, '2026-09-28')
+    expect(week).toBe(2)
+    expect(text).toContain('Semana 2 · Fase 1 (28 sep – 4 oct)\nSueño: 7,0 h de media (1 noche) · noches malas: ninguna')
+    expect(text).toContain('Mié 30 · Sesión A\nSentadilla trasera: no hecho\nPress banca 60 kg: 8 · RIR 3')
+  })
+
+  it('has no text without an active routine', async () => {
+    expect(await loadWeekSummary(db, '2026-09-28')).toEqual({ text: null, week: null })
   })
 })
 

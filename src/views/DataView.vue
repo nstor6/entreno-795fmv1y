@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { backupFileName, exportBackup, restoreBackup, validateBackup, type Backup } from '../data/backup'
+import { downloadBackup, restoreBackup, validateBackup, type Backup } from '../data/backup'
 import { importRoutine } from '../data/importRoutine'
 import { db } from '../data/instance'
 import { useLive } from '../data/live'
@@ -55,15 +55,7 @@ async function onRoutineFile(e: Event) {
 // Backup export
 const exportMsg = ref<string | null>(null)
 async function onExport() {
-  const backup = await exportBackup(db)
-  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = backupFileName()
-  a.click()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
-  exportMsg.value = `Copia descargada: ${a.download}`
+  exportMsg.value = `Copia descargada: ${await downloadBackup(db)}`
 }
 
 // Backup import: validate, confirm, replace
