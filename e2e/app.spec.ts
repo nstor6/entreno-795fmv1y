@@ -94,6 +94,28 @@ test('the «Sesión» home-screen shortcut opens the open session, or Today when
   await expect(page).toHaveURL(url)
 })
 
+test('streak, points and a first badge after the first session', async ({ page }) => {
+  await importRoutine(page)
+  await page.goto('#/')
+  await expect(page.getByRole('link', { name: 'Racha, nivel y logros' })).toContainText('Empieza tu racha')
+
+  await startSession(page, 'A')
+  const squat = await openExercise(page, 'Sentadilla trasera')
+  await squat.getByRole('button', { name: 'Añadir serie' }).click()
+  await squat.getByRole('group', { name: 'RIR' }).last().getByRole('button', { name: '3', exact: true }).click()
+  await page.getByRole('button', { name: 'Terminar sesión' }).click()
+  await page.getByRole('button', { name: 'Toca otra vez para terminar' }).click()
+
+  await page.getByRole('navigation', { name: 'Secciones' }).getByRole('link', { name: 'Hoy' }).click()
+  const card = page.getByRole('link', { name: 'Racha, nivel y logros' })
+  await expect(card).toContainText('1 de 3 esta semana')
+  await expect(card).toContainText('Nivel 1')
+  await expect(page.getByRole('status')).toContainText('Insignia nueva: Primera sesión')
+  await page.getByRole('button', { name: 'Ver', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Logros', level: 1 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Insignias · 1 de 13/ })).toBeVisible()
+})
+
 test('diary: a red flag shows the alarm at once', async ({ page }) => {
   await importRoutine(page)
   await page.goto('#/')

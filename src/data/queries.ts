@@ -1,5 +1,6 @@
 // Read models for the screens, meant to run inside useLive().
 import { addDays } from '../domain/dates'
+import { gameSummary, type GameSummary } from '../domain/gamification'
 import { recordsOf, type ExerciseRecord } from '../domain/history'
 import { weeklySummary } from '../domain/summary'
 import { kneePainDates, kneeStatus, type KneeStatus } from '../domain/knee'
@@ -138,6 +139,21 @@ export async function loadProgress(db: EntrenoDB): Promise<ProgressData> {
     db.dailyLogs.toArray(),
   ])
   return { exercises, workouts, workoutExercises, sets, measurements, dailyLogs }
+}
+
+/** Streak, points, level and badges from the stored data (null without an active routine). */
+export async function loadGame(db: EntrenoDB, today: string): Promise<GameSummary | null> {
+  const routine = (await db.routines.toArray()).find((r) => r.active && isAlive(r))
+  if (!routine) return null
+  const [days, data] = await Promise.all([db.routineDays.where('routineId').equals(routine.id).toArray(), loadProgress(db)])
+  return gameSummary(
+    {
+      weeklyTarget: days.filter(isAlive).length,
+      routineStartDate: routine.startDate,
+      ...data,
+    },
+    today,
+  )
 }
 
 export async function loadMeasurements(db: EntrenoDB): Promise<Measurement[]> {

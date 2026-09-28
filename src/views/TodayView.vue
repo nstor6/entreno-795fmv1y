@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { db } from '../data/instance'
 import { useLive } from '../data/live'
-import { loadToday } from '../data/queries'
+import { loadGame, loadToday } from '../data/queries'
 import { finishForgottenWorkout, reopenWorkout, startWorkout } from '../data/session'
 import { showToast } from '../ui/toast'
 import { formatShortDate, localDate } from '../domain/dates'
@@ -11,10 +11,12 @@ import { REST_WARNING } from '../domain/nextSession'
 import { kneeMessages } from '../domain/knee'
 import BackupNotice from '../components/BackupNotice.vue'
 import DiaryCard from '../components/DiaryCard.vue'
+import GameCard from '../components/GameCard.vue'
 
 const router = useRouter()
 const today = localDate()
 const { data: model } = useLive(() => loadToday(db, today))
+const { data: game } = useLive(() => loadGame(db, today))
 
 // Follows the next session until you pick another one by hand.
 const manualDayId = ref<string | null>(null)
@@ -109,6 +111,8 @@ async function start() {
         <p v-if="error" class="notice notice-alarm" role="alert">{{ error }}</p>
       </div>
     </template>
+
+    <GameCard v-if="game" :game="game" />
 
     <DiaryCard :date="today" :log="model.diary" :last-sleep-hours="model.lastSleepHours" />
 

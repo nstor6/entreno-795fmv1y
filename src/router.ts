@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { db } from './data/instance'
+import AchievementsView from './views/AchievementsView.vue'
 import DataView from './views/DataView.vue'
 import ExerciseHistoryView from './views/ExerciseHistoryView.vue'
 import HistoryView from './views/HistoryView.vue'
@@ -36,6 +37,7 @@ export const router = createRouter({
     { path: '/medidas', redirect: '/progreso' },
     { path: '/resumen', name: 'summary', component: SummaryView },
     { path: '/datos', name: 'data', component: DataView },
+    { path: '/logros', name: 'achievements', component: AchievementsView },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })
