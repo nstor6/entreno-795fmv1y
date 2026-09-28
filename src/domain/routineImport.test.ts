@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import rutina from '../../data/rutina-fase1.json'
+import { rutina } from '../test/routineFixture'
 import { validateRoutineFile } from './routineImport'
 
 const clone = (): Record<string, unknown> => structuredClone(rutina) as Record<string, unknown>

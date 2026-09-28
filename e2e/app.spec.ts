@@ -81,6 +81,19 @@ test('discarding a session started by mistake, and undoing it', async ({ page })
   await expect(page.getByRole('link', { name: 'Continuar sesión' })).toBeVisible()
 })
 
+test('the «Sesión» home-screen shortcut opens the open session, or Today when there is none', async ({ page }) => {
+  await importRoutine(page)
+  await page.goto('#/sesion-actual')
+  await expect(page).toHaveURL(/#\/$/)
+  await expect(page.getByRole('button', { name: 'Empezar sesión' })).toBeVisible()
+
+  await startSession(page, 'A')
+  const url = page.url()
+  await page.goto('#/')
+  await page.goto('#/sesion-actual')
+  await expect(page).toHaveURL(url)
+})
+
 test('diary: a red flag shows the alarm at once', async ({ page }) => {
   await importRoutine(page)
   await page.goto('#/')

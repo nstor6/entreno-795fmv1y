@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { db } from '../data/instance'
 import { updateSet, type SetPatch } from '../data/session'
 import { platesPerSide, platesText } from '../domain/plates'
+import { tick } from '../ui/haptics'
 import { plateSettings, platesShownFor } from '../ui/plateSettings'
 import { loadStep, stepValue, valueStep } from '../domain/setDraft'
 import type { Exercise, SetLog } from '../domain/types'
@@ -30,6 +31,7 @@ watch(
 )
 
 function patch(p: SetPatch) {
+  tick()
   Object.assign(s, p)
   inFlight++
   void updateSet(db, s.id, p).finally(() => {

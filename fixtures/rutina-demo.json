@@ -1,0 +1,489 @@
+{
+  "format": "entreno-rutina",
+  "formatVersion": 1,
+  "exercises": [
+    {
+      "id": "sentadilla-trasera",
+      "name": "Sentadilla trasera",
+      "measure": "reps",
+      "perSide": false,
+      "bodyweight": false,
+      "loadIncrementKg": 5,
+      "alternatives": [
+        {
+          "exerciseId": "sentadilla-cajon",
+          "reason": "knee"
+        },
+        {
+          "exerciseId": "prensa",
+          "reason": "knee"
+        }
+      ]
+    },
+    {
+      "id": "sentadilla-cajon",
+      "name": "Sentadilla a cajón",
+      "measure": "reps",
+      "perSide": false,
+      "bodyweight": false,
+      "loadIncrementKg": 5,
+      "alternatives": []
+    },
+    {
+      "id": "press-banca",
+      "name": "Press banca",
+      "measure": "reps",
+      "perSide": false,
+      "bodyweight": false,
+      "loadIncrementKg": 2.5,
+      "alternatives": []
+    },
+    {
+      "id": "remo-mancuernas-inclinado",
+      "name": "Remo con mancuernas en banco inclinado",
+      "measure": "reps",
+      "perSide": false,
+      "bodyweight": false,
+      "loadIncrementKg": 2,
+      "alternatives": []
+    },
+    {
+      "id": "hip-thrust",
+      "name": "Hip thrust con barra",
+      "measure": "reps",
+      "perSide": false,
+      "bodyweight": false,
+      "loadIncrementKg": 5,
+      "alternatives": []
+    },
+    {
+      "id": "face-pull",
+      "name": "Face pull",
+      "measure": "reps",
+      "perSide": false,
+      "bodyweight": false,
+      "loadIncrementKg": 5,
+      "alternatives": []
+    },
+    {
+      "id": "dead-bug",
+      "name": "Dead bug",
+      "measure": "reps",
+      "perSide": true,
+      "bodyweight": false,
+      "loadIncrementKg": null,
+      "alternatives": []
+    },
+    {
+      "id": "peso-muerto-rumano",
+      "name": "Peso muerto rumano",
+      "measure": "reps",
+      "perSide": false,
+      "bodyweight": false,
+      "loadIncrementKg": 5,
+      "alternatives": []
+    },
+    {
+      "id": "press-militar",
+      "name": "Press militar de pie",
+      "measure": "reps",
+      "perSide": false,
+      "bodyweight": false,
+      "loadIncrementKg": 2.5,
+      "alternatives": []
+    },
+    {
+      "id": "dominadas",
+      "name": "Dominadas",
+      "measure": "reps",
+      "perSide": false,
+      "bodyweight": true,
+      "loadIncrementKg": 2.5,
+      "alternatives": [
+        {
+          "exerciseId": "jalon-al-pecho",
+          "reason": "easier"
+        }
+      ]
+    },
+    {
+      "id": "jalon-al-pecho",
+      "name": "Jalón al pecho",
+      "measure": "reps",
+      "perSide": false,
+      "bodyweight": false,
+      "loadIncrementKg": 5,
+      "alternatives": []
+    },
+    {
+      "id": "zancada-inversa",
+      "name": "Zancada inversa con mancuernas",
+      "measure": "reps",
+      "perSide": true,
+      "bodyweight": false,
+      "loadIncrementKg": 2,
+      "alternatives": [
+        {
+          "exerciseId": "step-up-cajon-bajo",
+          "reason": "knee"
+        }
+      ]
+    },
+    {
+      "id": "step-up-cajon-bajo",
+      "name": "Step-up a cajón bajo",
+      "measure": "reps",
+      "perSide": true,
+      "bodyweight": false,
+      "loadIncrementKg": 2,
+      "alternatives": []
+    },
+    {
+      "id": "paseo-granjero",
+      "name": "Paseo del granjero",
+      "measure": "meters",
+      "perSide": false,
+      "bodyweight": false,
+      "loadIncrementKg": 2,
+      "alternatives": []
+    },
+    {
+      "id": "prensa",
+      "name": "Prensa de piernas",
+      "measure": "reps",
+      "perSide": false,
+      "bodyweight": false,
+      "loadIncrementKg": 10,
+      "alternatives": []
+    },
+    {
+      "id": "press-inclinado-mancuernas",
+      "name": "Press inclinado con mancuernas",
+      "measure": "reps",
+      "perSide": false,
+      "bodyweight": false,
+      "loadIncrementKg": 2,
+      "alternatives": []
+    },
+    {
+      "id": "remo-polea-sentado",
+      "name": "Remo sentado en polea",
+      "measure": "reps",
+      "perSide": false,
+      "bodyweight": false,
+      "loadIncrementKg": 5,
+      "alternatives": []
+    },
+    {
+      "id": "curl-femoral",
+      "name": "Curl femoral",
+      "measure": "reps",
+      "perSide": false,
+      "bodyweight": false,
+      "loadIncrementKg": 5,
+      "alternatives": []
+    },
+    {
+      "id": "pallof-press",
+      "name": "Pallof press",
+      "measure": "reps",
+      "perSide": true,
+      "bodyweight": false,
+      "loadIncrementKg": null,
+      "alternatives": []
+    }
+  ],
+  "routine": {
+    "id": "fase1-fullbody",
+    "name": "Fase 1 – Full body",
+    "shortName": "Fase 1",
+    "startDate": "2026-09-24",
+    "notes": "Rutina de ejemplo para los tests automáticos.",
+    "warmup": [
+      "Calentamiento general.",
+      "Movilidad.",
+      "Series de aproximación."
+    ],
+    "weekOverrides": [
+      {
+        "weeks": [
+          1
+        ],
+        "sets": 2,
+        "rirMin": 3,
+        "rirMax": 4,
+        "label": "Semana 1: encontrar cargas."
+      },
+      {
+        "weeks": [
+          2
+        ],
+        "label": "Semana 2: confirmar cargas."
+      }
+    ],
+    "days": [
+      {
+        "id": "fase1-a",
+        "key": "A",
+        "name": "Sesión A",
+        "order": 1,
+        "exercises": [
+          {
+            "id": "fase1-a-01",
+            "exerciseId": "sentadilla-trasera",
+            "order": 1,
+            "sets": 3,
+            "targetMin": 6,
+            "targetMax": 8,
+            "rirMin": 3,
+            "rirMax": 3,
+            "restSecMin": 120,
+            "restSecMax": 180,
+            "notes": "",
+            "supersetGroup": null
+          },
+          {
+            "id": "fase1-a-02",
+            "exerciseId": "press-banca",
+            "order": 2,
+            "sets": 3,
+            "targetMin": 6,
+            "targetMax": 8,
+            "rirMin": 3,
+            "rirMax": 3,
+            "restSecMin": 120,
+            "restSecMax": 180,
+            "notes": "",
+            "supersetGroup": null
+          },
+          {
+            "id": "fase1-a-03",
+            "exerciseId": "remo-mancuernas-inclinado",
+            "order": 3,
+            "sets": 3,
+            "targetMin": 8,
+            "targetMax": 12,
+            "rirMin": 2,
+            "rirMax": 3,
+            "restSecMin": 120,
+            "restSecMax": 120,
+            "notes": "",
+            "supersetGroup": null
+          },
+          {
+            "id": "fase1-a-04",
+            "exerciseId": "hip-thrust",
+            "order": 4,
+            "sets": 3,
+            "targetMin": 8,
+            "targetMax": 12,
+            "rirMin": 2,
+            "rirMax": 3,
+            "restSecMin": 90,
+            "restSecMax": 90,
+            "notes": "",
+            "supersetGroup": null
+          },
+          {
+            "id": "fase1-a-05",
+            "exerciseId": "face-pull",
+            "order": 5,
+            "sets": 3,
+            "targetMin": 12,
+            "targetMax": 15,
+            "rirMin": 2,
+            "rirMax": 3,
+            "restSecMin": 60,
+            "restSecMax": 60,
+            "notes": "",
+            "supersetGroup": "a-ss1"
+          },
+          {
+            "id": "fase1-a-06",
+            "exerciseId": "dead-bug",
+            "order": 6,
+            "sets": 2,
+            "targetMin": 8,
+            "targetMax": 8,
+            "rirMin": null,
+            "rirMax": null,
+            "restSecMin": 60,
+            "restSecMax": 60,
+            "notes": "",
+            "supersetGroup": "a-ss1"
+          }
+        ]
+      },
+      {
+        "id": "fase1-b",
+        "key": "B",
+        "name": "Sesión B",
+        "order": 2,
+        "exercises": [
+          {
+            "id": "fase1-b-01",
+            "exerciseId": "peso-muerto-rumano",
+            "order": 1,
+            "sets": 3,
+            "targetMin": 8,
+            "targetMax": 10,
+            "rirMin": 3,
+            "rirMax": 3,
+            "restSecMin": 120,
+            "restSecMax": 180,
+            "notes": "",
+            "supersetGroup": null
+          },
+          {
+            "id": "fase1-b-02",
+            "exerciseId": "press-militar",
+            "order": 2,
+            "sets": 3,
+            "targetMin": 6,
+            "targetMax": 8,
+            "rirMin": 3,
+            "rirMax": 3,
+            "restSecMin": 120,
+            "restSecMax": 180,
+            "notes": "",
+            "supersetGroup": null
+          },
+          {
+            "id": "fase1-b-03",
+            "exerciseId": "dominadas",
+            "order": 3,
+            "sets": 3,
+            "targetMin": 6,
+            "targetMax": 10,
+            "rirMin": 2,
+            "rirMax": 3,
+            "restSecMin": 120,
+            "restSecMax": 120,
+            "notes": "",
+            "supersetGroup": null
+          },
+          {
+            "id": "fase1-b-04",
+            "exerciseId": "zancada-inversa",
+            "order": 4,
+            "sets": 3,
+            "targetMin": 8,
+            "targetMax": 10,
+            "rirMin": 3,
+            "rirMax": 3,
+            "restSecMin": 90,
+            "restSecMax": 90,
+            "notes": "",
+            "supersetGroup": null
+          },
+          {
+            "id": "fase1-b-05",
+            "exerciseId": "paseo-granjero",
+            "order": 5,
+            "sets": 3,
+            "targetMin": 30,
+            "targetMax": 40,
+            "rirMin": null,
+            "rirMax": null,
+            "restSecMin": 90,
+            "restSecMax": 90,
+            "notes": "",
+            "supersetGroup": null
+          }
+        ]
+      },
+      {
+        "id": "fase1-c",
+        "key": "C",
+        "name": "Sesión C",
+        "order": 3,
+        "exercises": [
+          {
+            "id": "fase1-c-01",
+            "exerciseId": "prensa",
+            "order": 1,
+            "sets": 3,
+            "targetMin": 10,
+            "targetMax": 12,
+            "rirMin": 3,
+            "rirMax": 3,
+            "restSecMin": 120,
+            "restSecMax": 120,
+            "notes": "",
+            "supersetGroup": null
+          },
+          {
+            "id": "fase1-c-02",
+            "exerciseId": "press-inclinado-mancuernas",
+            "order": 2,
+            "sets": 3,
+            "targetMin": 8,
+            "targetMax": 12,
+            "rirMin": 2,
+            "rirMax": 3,
+            "restSecMin": 120,
+            "restSecMax": 120,
+            "notes": "",
+            "supersetGroup": null
+          },
+          {
+            "id": "fase1-c-03",
+            "exerciseId": "remo-polea-sentado",
+            "order": 3,
+            "sets": 3,
+            "targetMin": 10,
+            "targetMax": 12,
+            "rirMin": 2,
+            "rirMax": 3,
+            "restSecMin": 90,
+            "restSecMax": 90,
+            "notes": "",
+            "supersetGroup": null
+          },
+          {
+            "id": "fase1-c-04",
+            "exerciseId": "curl-femoral",
+            "order": 4,
+            "sets": 3,
+            "targetMin": 10,
+            "targetMax": 12,
+            "rirMin": 2,
+            "rirMax": 3,
+            "restSecMin": 90,
+            "restSecMax": 90,
+            "notes": "",
+            "supersetGroup": null
+          },
+          {
+            "id": "fase1-c-05",
+            "exerciseId": "face-pull",
+            "order": 5,
+            "sets": 3,
+            "targetMin": 12,
+            "targetMax": 15,
+            "rirMin": 2,
+            "rirMax": 3,
+            "restSecMin": 60,
+            "restSecMax": 60,
+            "notes": "",
+            "supersetGroup": "c-ss1"
+          },
+          {
+            "id": "fase1-c-06",
+            "exerciseId": "pallof-press",
+            "order": 6,
+            "sets": 2,
+            "targetMin": 10,
+            "targetMax": 10,
+            "rirMin": null,
+            "rirMax": null,
+            "restSecMin": 60,
+            "restSecMax": 60,
+            "notes": "",
+            "supersetGroup": "c-ss1"
+          }
+        ]
+      }
+    ]
+  }
+}

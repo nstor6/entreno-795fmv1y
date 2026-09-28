@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import rutina from '../../data/rutina-fase1.json'
+import { rutina } from '../test/routineFixture'
 import { planRoutineImport, validateRoutineFile } from './routineImport'
 import { buildWorkout } from './workout'
 

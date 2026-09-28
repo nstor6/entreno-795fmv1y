@@ -1,4 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { db } from './data/instance'
 import DataView from './views/DataView.vue'
 import ExerciseHistoryView from './views/ExerciseHistoryView.vue'
 import HistoryView from './views/HistoryView.vue'
@@ -17,6 +18,18 @@ export const router = createRouter({
   routes: [
     { path: '/', name: 'today', component: TodayView },
     { path: '/sesion/:id', name: 'session', component: SessionView, props: true },
+    // Home-screen shortcut: the open session if there is one, otherwise Today to start one.
+    {
+      path: '/sesion-actual',
+      name: 'current-session',
+      component: TodayView,
+      beforeEnter: async () => {
+        const open = (await db.workouts.toArray())
+          .filter((w) => w.deletedAt === null && w.finishedAt === null)
+          .sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0]
+        return open ? `/sesion/${open.id}` : '/'
+      },
+    },
     { path: '/historial', name: 'history', component: HistoryView },
     { path: '/ejercicio/:id', name: 'exercise', component: ExerciseHistoryView, props: true },
     { path: '/progreso', name: 'progress', component: ProgressView },

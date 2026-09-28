@@ -29,6 +29,12 @@ export default defineConfig({
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
           { src: 'maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
+        // Long-press on the home-screen icon (Android).
+        shortcuts: [
+          { name: 'Sesión', short_name: 'Sesión', url: `${base}#/sesion-actual`, icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }] },
+          { name: 'Resumen semanal', short_name: 'Resumen', url: `${base}#/resumen`, icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }] },
+          { name: 'Progreso', short_name: 'Progreso', url: `${base}#/progreso`, icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }] },
+        ],
       },
       workbox: {
         // Everything the app needs offline, fonts included.

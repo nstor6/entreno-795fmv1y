@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { formatNumber } from '../domain/format'
+import { tick } from '../ui/haptics'
 
 const props = defineProps<{
   value: number | null
@@ -19,8 +20,9 @@ const text = ref('')
 const input = ref<HTMLInputElement | null>(null)
 
 function onStep(delta: number) {
-  if (props.typeWhenEmpty && props.value === null) input.value?.focus()
-  else emit('step', delta)
+  if (props.typeWhenEmpty && props.value === null) return input.value?.focus()
+  tick()
+  emit('step', delta)
 }
 watch(
   () => props.value,

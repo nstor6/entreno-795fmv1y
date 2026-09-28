@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
 
 // End-to-end checks on a phone-sized Chrome against the production build (service worker
-// included, so offline can be tested). Local only: they use data/, which isn't in the repo.
+// included, so offline can be tested). They import data/rutina-fase1.json when it's there
+// and the public demo routine otherwise (GitHub Actions).
 export default defineConfig({
   testDir: 'e2e',
   fullyParallel: true,

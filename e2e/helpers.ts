@@ -1,7 +1,11 @@
 import { expect, type Page } from '@playwright/test'
+import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-export const ROUTINE_FILE = fileURLToPath(new URL('../data/rutina-fase1.json', import.meta.url))
+// The real routine when it's there (local), otherwise the public demo (GitHub Actions).
+const REAL = fileURLToPath(new URL('../data/rutina-fase1.json', import.meta.url))
+const DEMO = fileURLToPath(new URL('../fixtures/rutina-demo.json', import.meta.url))
+export const ROUTINE_FILE = existsSync(REAL) ? REAL : DEMO
 
 /** Imports the phase 1 routine from Datos, like choosing the file on the phone. */
 export async function importRoutine(page: Page): Promise<void> {

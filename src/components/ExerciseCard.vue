@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { db } from '../data/instance'
 import type { SessionExercise } from '../data/queries'
 import { addSet, deleteSet, restoreSet, updateWorkoutExercise } from '../data/session'
+import { tick } from '../ui/haptics'
 import { platesShownFor, setPlatesShownFor } from '../ui/plateSettings'
 import { showToast } from '../ui/toast'
 import { readLocal, writeLocal } from '../data/storage'
@@ -118,6 +119,7 @@ const suggestionMessage = computed(() => {
 async function onAdd() {
   const ex = active.value
   if (!ex) return
+  tick()
   const lastTime = lastWorkingSetAs(props.item.records, ex.id)
   const targetMin = we.value.targetMin
   // The suggested load only applies when doing the planned exercise, not an alternative.

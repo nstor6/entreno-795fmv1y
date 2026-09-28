@@ -1,7 +1,8 @@
 import 'fake-indexeddb/auto'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import rutina from '../../data/rutina-fase1.json'
+import { rutina } from '../test/routineFixture'
 import { backupFileName, exportBackup, restoreBackup, validateBackup } from './backup'
+import { cleanLocalNotes } from './cleanup'
 import { EntrenoDB, TABLE_NAMES } from './db'
 import { addMeasurement, deleteMeasurement, restoreMeasurement, saveDailyLog, updateMeasurement } from './diary'
 import { importRoutine } from './importRoutine'
@@ -191,6 +192,33 @@ describe('discarding and restoring', () => {
     await deleteMeasurement(db, m, 'T2')
     await restoreMeasurement(db, m, 'T3')
     expect((await db.measurements.get(m))?.deletedAt).toBeNull()
+  })
+})
+
+describe('cleanLocalNotes', () => {
+  it('drops notes of sessions closed long ago and leaves the database untouched', async () => {
+    await importRoutine(db, rutina, 'T1')
+    const old = await startWorkout(db, 'fase1-a', '2026-09-01', '2026-09-01T17:00:00.000Z')
+    await finishWorkout(db, old, '2026-09-01T18:00:00.000Z')
+    const open = await startWorkout(db, 'fase1-b', '2026-09-02', '2026-09-02T17:00:00.000Z')
+    const before = await snapshot()
+
+    const map = new Map<string, string>([
+      [`entreno:warmup:${old}`, '[0]'],
+      [`entreno:focus:${open}`, '{}'],
+      ['entreno:plates', '{}'],
+    ])
+    const store = {
+      get length() {
+        return map.size
+      },
+      key: (i: number) => [...map.keys()][i] ?? null,
+      removeItem: (k: string) => void map.delete(k),
+    }
+    const removed = await cleanLocalNotes(db, store, '2026-10-01')
+    expect(removed).toEqual([`entreno:warmup:${old}`])
+    expect([...map.keys()]).toEqual([`entreno:focus:${open}`, 'entreno:plates'])
+    expect(await snapshot()).toEqual(before)
   })
 })
 
