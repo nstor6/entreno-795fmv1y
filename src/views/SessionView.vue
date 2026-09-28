@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import ExerciseCard from '../components/ExerciseCard.vue'
+import FocusRow from '../components/FocusRow.vue'
 import RestBar from '../components/RestBar.vue'
 import SessionRecords from '../components/SessionRecords.vue'
 import { db } from '../data/instance'
@@ -12,6 +13,7 @@ import { useRouter } from 'vue-router'
 import { readLocal, writeLocal } from '../data/storage'
 import { formatShortDate } from '../domain/dates'
 import { formatWorkoutExerciseLines } from '../domain/format'
+import { afterSet, finishedSets, firstPending, nextPendingAfter, type FocusItem, type SetLogged } from '../domain/focus'
 import type { RestRequest, RunningRest } from '../domain/rest'
 import { weekLabel } from '../domain/weeks'
 
@@ -97,6 +99,55 @@ function stopRest() {
 }
 watch(finished, (f) => f && stopRest())
 
+// Focus mode: one exercise open at a time while the session is live. The open one is
+// kept on this device; with none stored, the first exercise with sets left.
+const FOCUS_MODE_KEY = 'entreno:focus-mode'
+const focusModeOn = ref(readLocal(FOCUS_MODE_KEY) !== 'off')
+function setFocusMode(on: boolean) {
+  focusModeOn.value = on
+  writeLocal(FOCUS_MODE_KEY, on ? null : 'off')
+}
+const focusMode = computed(() => focusModeOn.value && !finished.value)
+
+const focusKey = computed(() => `entreno:focus:${props.id}`)
+const storedFocus = ref<{ id: string | null } | null>(JSON.parse(readLocal(focusKey.value) ?? 'null'))
+const focusItems = computed<FocusItem[]>(() =>
+  (model.value?.items ?? []).map((i) => ({
+    id: i.workoutExercise.id,
+    supersetGroup: i.workoutExercise.supersetGroup,
+    targetSets: i.workoutExercise.targetSets,
+    doneSets: finishedSets(i.sets, i.workoutExercise.rirMin !== null),
+  })),
+)
+const openId = computed(() => {
+  const stored = storedFocus.value
+  if (stored && (stored.id === null || focusItems.value.some((x) => x.id === stored.id))) return stored.id
+  return firstPending(focusItems.value)
+})
+const allDone = computed(() => focusItems.value.length > 0 && firstPending(focusItems.value) === null)
+const isOpen = (item: SessionExercise) => !focusMode.value || item.workoutExercise.id === openId.value
+
+async function focusOn(id: string | null, scroll = true) {
+  storedFocus.value = { id }
+  writeLocal(focusKey.value, JSON.stringify({ id }))
+  if (!scroll || !id || !focusMode.value) return
+  await nextTick()
+  document.getElementById(`ex-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+const nextName = computed(() => {
+  const id = openId.value && nextPendingAfter(focusItems.value, openId.value)
+  return id ? { id, name: model.value?.items.find((i) => i.workoutExercise.id === id)?.planned?.name ?? '' } : null
+})
+
+// A set was just finished: rest or not, and which exercise to open (supersets alternate).
+function onLogged(e: SetLogged) {
+  const items = focusItems.value.map((x) => (x.id === e.workoutExerciseId ? { ...x, doneSets: Math.max(x.doneSets, e.doneSets) } : x))
+  const next = afterSet(items, e.workoutExerciseId)
+  if (next.rest && e.rest) startRest(e.rest)
+  if (next.focus !== openId.value) void focusOn(next.focus)
+}
+
 // Session note
 const note = ref('')
 watch(
@@ -176,27 +227,62 @@ onBeforeUnmount(() => {
       </ul>
     </details>
 
+    <div v-if="!finished" class="view-toggle">
+      <button type="button" class="btn btn-quiet" @click="setFocusMode(!focusModeOn)">
+        {{ focusModeOn ? 'Ver todos los ejercicios' : 'Ver un ejercicio a la vez' }}
+      </button>
+    </div>
+
+    <div v-if="focusMode && allDone && openId === null" class="notice notice-info all-done" role="status">
+      Has hecho todas las series. Revisa lo que quieras y pulsa «Terminar sesión».
+    </div>
+
     <template v-for="g in groups" :key="g.key">
       <section v-if="g.superset" class="superset" aria-label="Superserie">
-        <p class="superset-label">Superserie</p>
+        <p class="superset-label">Superserie · alterna los dos y descansa después del par</p>
+        <template v-for="item in g.items" :key="item.workoutExercise.id">
+          <div :id="`ex-${item.workoutExercise.id}`" class="anchor">
+            <ExerciseCard
+              v-if="isOpen(item)"
+              :item="item"
+              :exercises="model.exercises"
+              :sleep-quality="model.sleepQuality"
+              :live="!finished"
+              @rest="startRest"
+              @logged="onLogged"
+            />
+            <FocusRow v-else :item="item" :exercises="model.exercises" @open="focusOn(item.workoutExercise.id)" />
+          </div>
+        </template>
+        <button
+          v-if="focusMode && nextName && g.items.some((i) => i.workoutExercise.id === openId)"
+          type="button"
+          class="btn next"
+          @click="focusOn(nextName.id)"
+        >
+          Siguiente: {{ nextName.name }} ›
+        </button>
+      </section>
+      <div v-else :id="`ex-${g.items[0]!.workoutExercise.id}`" class="anchor stack-tight">
         <ExerciseCard
-          v-for="item in g.items"
-          :key="item.workoutExercise.id"
-          :item="item"
+          v-if="isOpen(g.items[0]!)"
+          :item="g.items[0]!"
           :exercises="model.exercises"
           :sleep-quality="model.sleepQuality"
           :live="!finished"
           @rest="startRest"
+          @logged="onLogged"
         />
-      </section>
-      <ExerciseCard
-        v-else
-        :item="g.items[0]!"
-        :exercises="model.exercises"
-        :sleep-quality="model.sleepQuality"
-        :live="!finished"
-        @rest="startRest"
-      />
+        <FocusRow v-else :item="g.items[0]!" :exercises="model.exercises" @open="focusOn(g.items[0]!.workoutExercise.id)" />
+        <button
+          v-if="focusMode && nextName && openId === g.items[0]!.workoutExercise.id"
+          type="button"
+          class="btn next"
+          @click="focusOn(nextName.id)"
+        >
+          Siguiente: {{ nextName.name }} ›
+        </button>
+      </div>
     </template>
 
     <div class="card">
@@ -288,5 +374,26 @@ onBeforeUnmount(() => {
 }
 .remove {
   margin-top: 16px;
+}
+.view-toggle {
+  display: flex;
+  justify-content: flex-end;
+  margin: -4px 0 -8px;
+}
+.view-toggle .btn {
+  padding: 0 4px;
+  font-size: 15px;
+}
+.anchor {
+  scroll-margin-top: 12px;
+}
+.stack-tight {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.next {
+  justify-content: space-between;
+  color: var(--action-ink);
 }
 </style>

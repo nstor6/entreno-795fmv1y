@@ -21,3 +21,18 @@ export async function startSession(page: Page, dayKey: string): Promise<void> {
 export function exerciseCard(page: Page, name: string) {
   return page.locator('article.exercise').filter({ has: page.getByRole('heading', { name, exact: true }) })
 }
+
+export function focusRow(page: Page, name: string) {
+  return page.locator('button.focus-row').filter({ has: page.getByText(name, { exact: true }) })
+}
+
+/** Opens an exercise in focus mode (tapping its folded row if needed) and returns its card. */
+export async function openExercise(page: Page, name: string) {
+  const row = focusRow(page, name)
+  const card = exerciseCard(page, name)
+  // Wait for the session to render one or the other before deciding.
+  await expect(card.or(row)).toBeVisible()
+  if (await row.isVisible()) await row.tap()
+  await expect(card).toBeVisible()
+  return card
+}

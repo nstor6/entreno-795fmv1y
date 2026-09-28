@@ -43,9 +43,11 @@ function pick(src: SetLog): SetPatch {
 }
 
 function setRir(r: number) {
-  const next = s.rir === r ? null : r
+  const before = s.rir
+  const next = before === r ? null : r
   patch({ rir: next })
-  if (next !== null) emit('done')
+  // Only the first RIR of a working set means «set finished»; correcting it later doesn't.
+  if (before === null && next !== null && !s.isWarmup) emit('done')
 }
 
 function value(): number | null {

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { exerciseCard, importRoutine, startSession } from './helpers'
+import { importRoutine, openExercise, startSession } from './helpers'
 
 const TABS: [label: string, heading: RegExp][] = [
   ['Historial', /^Historial$/],
@@ -30,10 +30,11 @@ test('tapping each tab changes the screen', async ({ page }) => {
 test('tabs work from a session with the rest bar and an undo message on screen', async ({ page }) => {
   await importRoutine(page)
   await startSession(page, 'A')
-  const bench = exerciseCard(page, 'Press banca')
+  const bench = await openExercise(page, 'Press banca')
   await bench.getByRole('button', { name: 'Añadir serie' }).tap()
   await bench.getByRole('button', { name: 'Añadir serie' }).tap()
-  await bench.getByRole('group', { name: 'RIR' }).first().getByRole('button', { name: '3', exact: true }).tap()
+  await expect(bench.locator('.set')).toHaveCount(2)
+  await bench.getByRole('group', { name: 'RIR' }).last().getByRole('button', { name: '3', exact: true }).tap()
   await bench.getByRole('button', { name: 'Borrar' }).first().tap()
   await expect(page.getByRole('timer')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Deshacer' })).toBeVisible()

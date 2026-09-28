@@ -23,13 +23,13 @@ const set = (over: Partial<SetLog>): SetLog => ({
 const reps = { measure: 'reps' as const, bodyweight: false }
 
 describe('draftSet', () => {
-  it('copies load, value and RIR of the previous set, not knee or note', () => {
+  it('copies load and value of the previous set, not its RIR, knee or note', () => {
     expect(draftSet(reps, 6, set({ loadKg: 62.5, reps: 7, rir: 2 }), null)).toEqual({
       loadKg: 62.5,
       reps: 7,
       distanceM: null,
       durationS: null,
-      rir: 2,
+      rir: null,
     })
   })
   it('first set takes the load from last time and the minimum target', () => {

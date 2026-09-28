@@ -1,5 +1,7 @@
 // Values a new set starts with (SPEC §8): the first set takes the load from last
-// time; every later set copies the previous one.
+// time; every later set copies the previous one's load and value. The RIR is not
+// copied: it's judged set by set, logging it marks the set as done (focus mode and
+// rest), and a stale copied RIR would feed the progression rules a value never felt.
 import type { Exercise, SetLog } from './types'
 
 export type SetValues = Pick<SetLog, 'loadKg' | 'reps' | 'distanceM' | 'durationS' | 'rir'>
@@ -25,7 +27,7 @@ export function draftSet(
       reps: previous.reps,
       distanceM: previous.distanceM,
       durationS: previous.durationS,
-      rir: previous.rir,
+      rir: null,
     }
   }
   const loadKg = suggestedLoadKg ?? lastTime?.loadKg ?? (exercise.bodyweight ? 0 : null)

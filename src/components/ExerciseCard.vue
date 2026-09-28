@@ -10,6 +10,7 @@ import { formatShortDate } from '../domain/dates'
 import { formatExerciseLine, formatTarget } from '../domain/format'
 import { lastAny, lastWorkingSetAs, workingSetsByExercise } from '../domain/history'
 import { suggest, suggestedLoad, suggestionText } from '../domain/progression'
+import { finishedSets, type SetLogged } from '../domain/focus'
 import type { RestRequest } from '../domain/rest'
 import { draftSet } from '../domain/setDraft'
 import type { AltReason, Exercise, SleepQuality } from '../domain/types'
@@ -23,13 +24,30 @@ const props = defineProps<{
   live: boolean
 }>()
 
-const emit = defineEmits<{ rest: [request: RestRequest] }>()
+// rest: the «Descansar» button. logged: a set was just finished — the session decides
+// where to go next and whether to rest (supersets alternate without rest).
+const emit = defineEmits<{ rest: [request: RestRequest]; logged: [event: SetLogged] }>()
 
-// Rest with the plan's range, when the plan has one.
-function startRest() {
+function restRequest(): RestRequest | null {
   const p = props.item.plan
-  if (!props.live || !p) return
-  emit('rest', { name: active.value?.name ?? planned.value?.name ?? '', minSec: p.restSecMin, maxSec: p.restSecMax })
+  if (!p) return null
+  return { name: active.value?.name ?? planned.value?.name ?? '', minSec: p.restSecMin, maxSec: p.restSecMax }
+}
+
+function startRest() {
+  const r = restRequest()
+  if (props.live && r) emit('rest', r)
+}
+
+/** With an RIR target, a set is finished when its RIR is first logged; without one, when it's added. */
+const hasRirTarget = computed(() => props.item.workoutExercise.rirMin !== null)
+
+function onSetDone(setId: string) {
+  if (!props.live || !hasRirTarget.value) return
+  // The RIR was just saved from the set row; count that set even if this card's data
+  // hasn't caught up with the database yet.
+  const sets = props.item.sets.map((s) => (s.id === setId && s.rir === null ? { ...s, rir: 0 } : s))
+  emit('logged', { workoutExerciseId: props.item.workoutExercise.id, doneSets: finishedSets(sets, true), rest: restRequest() })
 }
 
 const we = computed(() => props.item.workoutExercise)
@@ -104,7 +122,12 @@ async function onAdd() {
   const targetMin = we.value.targetMin
   // The suggested load only applies when doing the planned exercise, not an alternative.
   const suggested = suggestion.value && ex.id === planned.value?.id ? suggestedLoad(suggestion.value) : null
+  const before = finishedSets(props.item.sets, false)
   await addSet(db, we.value.id, ex.id, (previous) => draftSet(ex, targetMin, previous, lastTime, suggested))
+  // Without an RIR target there's nothing else to log: adding the set means it's done.
+  if (props.live && !hasRirTarget.value) {
+    emit('logged', { workoutExerciseId: we.value.id, doneSets: before + 1, rest: restRequest() })
+  }
 }
 
 async function removeSet(id: string) {
@@ -191,7 +214,7 @@ onBeforeUnmount(saveNote)
         :exercise="exercises.get(s.exerciseId) ?? active!"
         :alt-name="planned && s.exerciseId !== planned.id ? (exercises.get(s.exerciseId)?.name ?? null) : null"
         @remove="removeSet(s.id)"
-        @done="startRest"
+        @done="onSetDone(s.id)"
       />
     </div>
 

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { exerciseCard, importRoutine, startSession } from './helpers'
+import { exerciseCard, importRoutine, openExercise, startSession } from './helpers'
 
 // Monday of week 2 of phase 1, so the week and its targets are always the same.
 test.beforeEach(async ({ page }) => {
@@ -19,7 +19,7 @@ test('a whole session: sets, rest timer, reload in the middle, finish and histor
   await importRoutine(page)
   await startSession(page, 'A')
 
-  const bench = exerciseCard(page, 'Press banca')
+  const bench = await openExercise(page, 'Press banca')
   await expect(bench.getByText('3 × 6-8 · RIR 3 · 2-3 min')).toBeVisible()
   await expect(bench.locator('.suggestion')).toHaveText('Busca una carga que te deje en RIR 3.')
   await bench.getByRole('button', { name: 'Añadir serie' }).click()
@@ -34,12 +34,15 @@ test('a whole session: sets, rest timer, reload in the middle, finish and histor
   await expect(page.getByRole('timer')).toContainText('Descanso · Press banca')
   await expect(page.getByRole('timer')).toContainText('Plan: 2-3 min')
 
-  // A second set copies the first one.
+  // A second set copies the first one's load and reps; its RIR is logged set by set.
   await bench.getByRole('button', { name: 'Añadir serie' }).click()
   await expect(bench.getByRole('textbox', { name: 'kg' }).nth(1)).toHaveValue('60')
   await expect(bench.getByRole('textbox', { name: 'reps' }).nth(1)).toHaveValue('8')
+  const secondRir = bench.getByRole('group', { name: 'RIR' }).nth(1)
+  await expect(secondRir.getByRole('button', { pressed: true })).toHaveCount(0)
+  await secondRir.getByRole('button', { name: '3', exact: true }).click()
 
-  // Closing the app in the middle keeps everything.
+  // Closing the app in the middle keeps everything, including the open exercise.
   await page.reload()
   await expect(bench.getByRole('textbox', { name: 'kg' })).toHaveCount(2)
   await expect(page.getByRole('timer')).toBeVisible()
@@ -56,7 +59,7 @@ test('a whole session: sets, rest timer, reload in the middle, finish and histor
 test('deleting a set can be undone', async ({ page }) => {
   await importRoutine(page)
   await startSession(page, 'A')
-  const bench = exerciseCard(page, 'Press banca')
+  const bench = await openExercise(page, 'Press banca')
   await bench.getByRole('button', { name: 'Añadir serie' }).click()
   await expect(bench.locator('.set')).toHaveCount(1)
 
@@ -88,7 +91,7 @@ test('diary: a red flag shows the alarm at once', async ({ page }) => {
 test('backup: export, wipe everything, import, and the data is back', async ({ page }, testInfo) => {
   await importRoutine(page)
   await startSession(page, 'A')
-  await exerciseCard(page, 'Press banca').getByRole('button', { name: 'Añadir serie' }).click()
+  await (await openExercise(page, 'Press banca')).getByRole('button', { name: 'Añadir serie' }).click()
   await expect(exerciseCard(page, 'Press banca').locator('.set')).toHaveCount(1)
 
   await page.goto('#/datos')
@@ -146,6 +149,6 @@ test('works offline once installed', async ({ page }) => {
   await page.goto('#/')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Fase 1 · semana 2')
   await startSession(page, 'A')
-  await exerciseCard(page, 'Press banca').getByRole('button', { name: 'Añadir serie' }).click()
+  await (await openExercise(page, 'Press banca')).getByRole('button', { name: 'Añadir serie' }).click()
   await expect(exerciseCard(page, 'Press banca').locator('.set')).toHaveCount(1)
 })
